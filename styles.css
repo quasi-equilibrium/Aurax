@@ -239,6 +239,7 @@ body {
 }
 
 .craft-card {
+  position: relative;
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 12px 12px 14px;
@@ -898,6 +899,190 @@ body {
   }
 }
 
+/* Nova cutscene (tier 1): dönen genişleyen halkalar + çekirdek patlaması */
+.cutscene-nova {
+  --cn-color: #00e5ff;
+  position: fixed;
+  inset: 0;
+  z-index: 248;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.cutscene-nova--hidden {
+  display: none;
+}
+
+.cutscene-nova__veil {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  z-index: 0;
+}
+
+.cutscene-nova__center {
+  position: relative;
+  z-index: 1;
+  width: min(120vmin, 520px);
+  height: min(120vmin, 520px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cutscene-nova__rings {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cutscene-nova--run .cutscene-nova__rings {
+  animation: nova-rings-spin 4.5s linear forwards;
+}
+
+.cutscene-nova__ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 14vmin;
+  height: 14vmin;
+  margin: calc(-7vmin) 0 0 calc(-7vmin);
+  border: 2px solid var(--cn-color);
+  border-radius: 50%;
+  opacity: 0;
+  box-shadow:
+    0 0 16px var(--cn-color),
+    inset 0 0 12px rgba(255, 255, 255, 0.15);
+}
+
+.cutscene-nova--run .cutscene-nova__ring {
+  animation: nova-ring-expand 4.5s cubic-bezier(0.2, 0.85, 0.35, 1) forwards;
+}
+
+.cutscene-nova__ring--b {
+  animation-delay: 0.12s !important;
+}
+
+.cutscene-nova__ring--c {
+  animation-delay: 0.24s !important;
+}
+
+.cutscene-nova__core {
+  position: relative;
+  width: 14vmin;
+  max-width: 72px;
+  height: 14vmin;
+  max-height: 72px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 32%, #fff, var(--cn-color) 55%, transparent 72%);
+  box-shadow:
+    0 0 24px var(--cn-color),
+    0 0 64px var(--cn-color);
+  opacity: 0;
+  z-index: 2;
+}
+
+.cutscene-nova--run .cutscene-nova__core {
+  animation: nova-core-pulse 4.5s ease-out forwards;
+}
+
+.cutscene-nova__flash {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: #fff;
+  opacity: 0;
+}
+
+.cutscene-nova--run .cutscene-nova__flash {
+  animation: nova-burst-flash 4.5s ease-out forwards;
+}
+
+.cutscene-nova--fast.cutscene-nova--run .cutscene-nova__ring,
+.cutscene-nova--fast.cutscene-nova--run .cutscene-nova__core,
+.cutscene-nova--fast.cutscene-nova--run .cutscene-nova__flash {
+  animation-duration: 0.48s !important;
+}
+
+.cutscene-nova--fast.cutscene-nova--run .cutscene-nova__rings {
+  animation: nova-rings-spin 0.48s linear forwards !important;
+}
+
+@keyframes nova-rings-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(220deg);
+  }
+}
+
+@keyframes nova-ring-expand {
+  0% {
+    transform: scale(0.15);
+    opacity: 0;
+  }
+  8% {
+    opacity: 0.85;
+  }
+  55% {
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(5.5);
+    opacity: 0;
+  }
+}
+
+@keyframes nova-core-pulse {
+  0% {
+    transform: scale(0.2);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.35);
+  }
+  72% {
+    transform: scale(2.1);
+    opacity: 1;
+  }
+  88% {
+    transform: scale(3.2);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+@keyframes nova-burst-flash {
+  0%,
+  78% {
+    opacity: 0;
+  }
+  84% {
+    opacity: 0.55;
+  }
+  88% {
+    opacity: 1;
+  }
+  94% {
+    opacity: 0.45;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .fortune-cookie {
     animation: none;
@@ -920,6 +1105,16 @@ body {
 
   .cutscene--run .cutscene__star-rotate {
     animation-duration: 0.2s !important;
+  }
+
+  .cutscene-nova--run .cutscene-nova__ring,
+  .cutscene-nova--run .cutscene-nova__core,
+  .cutscene-nova--run .cutscene-nova__flash {
+    animation-duration: 0.4s !important;
+  }
+
+  .cutscene-nova--run .cutscene-nova__rings {
+    animation: nova-rings-spin 0.4s linear forwards !important;
   }
 }
 
@@ -1106,5 +1301,601 @@ body {
   background: linear-gradient(180deg, #5a5a5a 0%, #3d3d3d 100%);
   color: #fff;
   box-shadow: 0 4px 0 #222;
+}
+
+/* Steamer (özel auralar) */
+.font-steamer {
+  font-family: "Steamer", "Segoe Script", cursive, system-ui, sans-serif;
+  letter-spacing: 0.06em;
+}
+
+.actions--triple {
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 6px;
+  align-items: stretch;
+}
+
+.btn--test {
+  flex: 0 0 auto;
+  min-width: 0;
+  max-width: 72px;
+  padding: 12px 8px;
+  font-size: 0.68rem;
+  line-height: 1.1;
+  min-height: 52px;
+  background: linear-gradient(180deg, #37474f 0%, #263238 100%);
+  color: #b0bec5;
+  box-shadow: 0 4px 0 #1c2428;
+  text-transform: uppercase;
+}
+
+.btn--test:not(:disabled):hover {
+  filter: brightness(1.08);
+}
+
+.actions--triple .btn--quick {
+  flex: 1 1 36%;
+  max-width: none;
+}
+
+/* Craft kart — ikon sağ üst */
+.craft-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.craft-card__head .craft-card__name {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.craft-card__icon {
+  flex-shrink: 0;
+  font-size: 1.35rem;
+  line-height: 1;
+  opacity: 0.95;
+  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.2));
+}
+
+/* Envanter — iksir satırları */
+.inventory-consumable {
+  border: 1px solid #2a3d2a;
+  border-radius: 10px;
+  padding: 8px 6px;
+  background: linear-gradient(180deg, #0f1a12 0%, #0a0f0c 100%);
+}
+
+.inventory-consumable__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.inventory-consumable__label {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #a5d6a7;
+  line-height: 1.2;
+}
+
+.inventory-consumable__label--infinit {
+  color: #e1bee7;
+}
+
+.btn--consumable {
+  flex-shrink: 0;
+  min-height: 34px;
+  padding: 6px 10px;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  background: linear-gradient(180deg, #2e7d32 0%, #1b5e20 100%);
+  color: #e8f5e9;
+  box-shadow: 0 3px 0 #0d2e0f;
+}
+
+.btn--consumable:active {
+  transform: scale(0.97);
+}
+
+/* Legend reveal — Sseri sallama */
+.legend-reveal__name--shake {
+  animation: sseri-name-shake 0.28s ease-in-out infinite;
+}
+
+@keyframes sseri-name-shake {
+  0%,
+  100% {
+    transform: translateX(0) rotate(-1deg);
+  }
+  50% {
+    transform: translateX(4px) rotate(1.5deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .legend-reveal__name--shake {
+    animation: none;
+  }
+}
+
+/* ——— Cutscene: Sseri tetik ——— */
+.cutscene-sseri {
+  --sseri-color: #ff7043;
+  position: fixed;
+  inset: 0;
+  z-index: 255;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.cutscene-sseri--hidden {
+  display: none;
+}
+
+.cutscene-sseri__veil {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  opacity: 0.92;
+  z-index: 0;
+}
+
+.cutscene-sseri__glow {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 120vmin;
+  height: 120vmin;
+  margin: -60vmin 0 0 -60vmin;
+  z-index: 1;
+  background: radial-gradient(circle at 50% 50%, var(--sseri-color) 0%, transparent 55%);
+  opacity: 0;
+  filter: blur(4px);
+}
+
+.cutscene-sseri--run .cutscene-sseri__glow {
+  animation: sseri-glow-pulse 5.5s ease-in-out forwards;
+}
+
+.cutscene-sseri__center {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cutscene-sseri__revolver {
+  width: min(44vmin, 200px);
+  filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.35));
+  transform-origin: 50% 45%;
+}
+
+.cutscene-sseri--run .cutscene-sseri__revolver {
+  animation: sseri-revolver-spin 5.5s ease-in-out forwards;
+}
+
+.cutscene-sseri__revolver-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.cutscene-sseri__muzzle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 24vmin;
+  height: 24vmin;
+  margin: -12vmin 0 0 -12vmin;
+  z-index: 3;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, #ffecb3 35%, transparent 70%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cutscene-sseri--run .cutscene-sseri__muzzle {
+  animation: sseri-muzzle 5.5s ease-out forwards;
+}
+
+.cutscene-sseri__flash {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  background: #fff;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cutscene-sseri--run .cutscene-sseri__flash {
+  animation: sseri-flash-burst 5.5s ease-out forwards;
+}
+
+.cutscene-sseri--fast .cutscene-sseri__glow,
+.cutscene-sseri--fast .cutscene-sseri__revolver,
+.cutscene-sseri--fast .cutscene-sseri__muzzle,
+.cutscene-sseri--fast .cutscene-sseri__flash {
+  animation-duration: 0.55s !important;
+}
+
+@keyframes sseri-glow-pulse {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  25% {
+    opacity: 0.55;
+    transform: scale(0.85);
+  }
+  55% {
+    opacity: 0.95;
+    transform: scale(1.05);
+  }
+  68% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+
+@keyframes sseri-revolver-spin {
+  0% {
+    transform: rotate(0deg) scale(0.85);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(720deg) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes sseri-muzzle {
+  0%,
+  62% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  68% {
+    opacity: 1;
+    transform: scale(1.4);
+  }
+  78% {
+    opacity: 0.85;
+    transform: scale(2);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.5);
+  }
+}
+
+@keyframes sseri-flash-burst {
+  0%,
+  64% {
+    opacity: 0;
+  }
+  68% {
+    opacity: 0.95;
+  }
+  72% {
+    opacity: 0.35;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ——— Cutscene: UFO ——— */
+.cutscene-ufo {
+  --ufo-color: #69f0ae;
+  position: fixed;
+  inset: 0;
+  z-index: 255;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.cutscene-ufo--hidden {
+  display: none;
+}
+
+.cutscene-ufo__veil {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 100%, #0a1628 0%, #000 65%);
+  opacity: 1;
+  z-index: 0;
+}
+
+.cutscene-ufo__stars {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background-image:
+    radial-gradient(1px 1px at 10% 20%, #fff, transparent),
+    radial-gradient(1px 1px at 30% 70%, #fff, transparent),
+    radial-gradient(1px 1px at 70% 30%, #fff, transparent),
+    radial-gradient(1px 1px at 90% 60%, #fff, transparent),
+    radial-gradient(1px 1px at 50% 50%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 20% 45%, #e0f7fa, transparent),
+    radial-gradient(1px 1px at 85% 15%, #fff, transparent);
+  background-size: 100% 100%;
+  opacity: 0.75;
+}
+
+.cutscene-ufo__rise {
+  position: absolute;
+  left: 50%;
+  bottom: 18%;
+  z-index: 2;
+  width: 1px;
+  height: 1px;
+  transform: translateX(-50%);
+}
+
+.cutscene-ufo__rise-star {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 56px;
+  height: 56px;
+  margin: -28px 0 0 -28px;
+  background: var(--ufo-color);
+  clip-path: polygon(
+    50% 0%,
+    61% 35%,
+    98% 35%,
+    68% 57%,
+    79% 91%,
+    50% 70%,
+    21% 91%,
+    32% 57%,
+    2% 35%,
+    39% 35%
+  );
+  filter: drop-shadow(0 0 16px var(--ufo-color));
+  opacity: 0;
+}
+
+.cutscene-ufo__rise-trail {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 8px;
+  height: 0;
+  margin-left: -4px;
+  background: linear-gradient(180deg, rgba(105, 240, 174, 0.9), transparent);
+  border-radius: 4px;
+  opacity: 0;
+}
+
+.cutscene-ufo--run .cutscene-ufo__rise-star {
+  animation: ufo-star-phase 8s cubic-bezier(0.45, 0, 0.2, 1) forwards;
+}
+
+.cutscene-ufo--run .cutscene-ufo__rise-trail {
+  animation: ufo-trail-phase 8s ease-out forwards;
+}
+
+.cutscene-ufo__ufo {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  z-index: 3;
+  width: min(52vmin, 240px);
+  height: auto;
+  transform: translate(-50%, -50%) scale(0);
+  opacity: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.cutscene-ufo__dome {
+  width: 38%;
+  height: 28px;
+  margin-bottom: -6px;
+  border-radius: 50% 50% 0 0;
+  background: linear-gradient(180deg, #81c784, #2e7d32);
+  box-shadow: 0 0 20px var(--ufo-color);
+}
+
+.cutscene-ufo__disc {
+  width: 100%;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #4caf50 0%, #1b5e20 100%);
+  box-shadow:
+    0 0 0 3px rgba(105, 240, 174, 0.4),
+    0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+.cutscene-ufo__lights {
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  bottom: 10px;
+  height: 6px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--ufo-color) 0 10px,
+    transparent 10px 22px
+  );
+  border-radius: 3px;
+  opacity: 0.9;
+  animation: ufo-lights-blink 0.4s ease-in-out infinite alternate;
+}
+
+.cutscene-ufo--run .cutscene-ufo__ufo {
+  animation: ufo-appear-boom 8s ease-out forwards;
+}
+
+.cutscene-ufo__boom {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  z-index: 4;
+  width: 20vmin;
+  height: 20vmin;
+  margin: -10vmin 0 0 -10vmin;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, var(--ufo-color) 40%, transparent 70%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cutscene-ufo--run .cutscene-ufo__boom {
+  animation: ufo-boom-ring 8s ease-out forwards;
+}
+
+.cutscene-ufo--fast .cutscene-ufo__rise-star,
+.cutscene-ufo--fast .cutscene-ufo__rise-trail,
+.cutscene-ufo--fast .cutscene-ufo__ufo,
+.cutscene-ufo--fast .cutscene-ufo__boom {
+  animation-duration: 0.65s !important;
+}
+
+@keyframes ufo-lights-blink {
+  from {
+    opacity: 0.5;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes ufo-star-phase {
+  0% {
+    opacity: 0;
+    transform: rotate(0deg) scale(0.6);
+    top: 0;
+  }
+  5% {
+    opacity: 1;
+  }
+  37.5% {
+    transform: rotate(1080deg) scale(1);
+    top: 0;
+    opacity: 1;
+  }
+  70% {
+    top: -42vh;
+    transform: rotate(1200deg) scale(0.85);
+    opacity: 1;
+  }
+  85% {
+    opacity: 0.3;
+  }
+  100% {
+    top: -55vh;
+    opacity: 0;
+    transform: rotate(1260deg) scale(0.5);
+  }
+}
+
+@keyframes ufo-trail-phase {
+  0%,
+  37.5% {
+    opacity: 0;
+    height: 0;
+    top: 0;
+  }
+  40% {
+    opacity: 0.85;
+    height: 12vh;
+    top: -4vh;
+  }
+  70% {
+    opacity: 0.6;
+    height: 36vh;
+    top: -38vh;
+  }
+  100% {
+    opacity: 0;
+    height: 42vh;
+    top: -48vh;
+  }
+}
+
+@keyframes ufo-appear-boom {
+  0%,
+  58% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0);
+  }
+  62% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.85);
+  }
+  72% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  78% {
+    transform: translate(-50%, -50%) scale(1.08);
+    opacity: 1;
+  }
+  82% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(2);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(2.5);
+  }
+}
+
+@keyframes ufo-boom-ring {
+  0%,
+  74% {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  78% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+  88% {
+    opacity: 0.65;
+    transform: scale(3.5);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(5);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cutscene-sseri--run .cutscene-sseri__glow,
+  .cutscene-sseri--run .cutscene-sseri__revolver,
+  .cutscene-sseri--run .cutscene-sseri__muzzle,
+  .cutscene-sseri--run .cutscene-sseri__flash,
+  .cutscene-ufo--run .cutscene-ufo__rise-star,
+  .cutscene-ufo--run .cutscene-ufo__rise-trail,
+  .cutscene-ufo--run .cutscene-ufo__ufo,
+  .cutscene-ufo--run .cutscene-ufo__boom {
+    animation-duration: 0.01ms !important;
+  }
 }
 

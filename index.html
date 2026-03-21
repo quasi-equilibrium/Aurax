@@ -4,6 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Aura</title>
+    <link rel="preconnect" href="https://fonts.cdnfonts.com" />
+    <link href="https://fonts.cdnfonts.com/css/steamer" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -72,7 +74,8 @@
 
                 <p class="luck-readout" id="luck-readout" aria-live="polite">Şans birikimi: +0</p>
 
-                <div class="actions actions--spin-row">
+                <div class="actions actions--spin-row actions--triple">
+                  <button type="button" class="btn btn--test" id="btn-test">Test</button>
                   <button type="button" class="btn btn--quick" id="btn-quick">Hızlı çevir</button>
                   <button type="button" class="btn btn--spin btn--spin-grow" id="btn-spin">Çevir</button>
                 </div>
@@ -135,12 +138,74 @@
     </div>
 
     <div
+      id="cutscene-nova"
+      class="cutscene-nova cutscene-nova--hidden"
+      aria-hidden="true"
+      role="presentation"
+      style="--cn-color: #00e5ff"
+    >
+      <div class="cutscene-nova__veil"></div>
+      <div class="cutscene-nova__center">
+        <div class="cutscene-nova__rings" aria-hidden="true">
+          <span class="cutscene-nova__ring"></span>
+          <span class="cutscene-nova__ring cutscene-nova__ring--b"></span>
+          <span class="cutscene-nova__ring cutscene-nova__ring--c"></span>
+        </div>
+        <div class="cutscene-nova__core" aria-hidden="true"></div>
+      </div>
+      <div class="cutscene-nova__flash" aria-hidden="true"></div>
+    </div>
+
+    <div
+      id="cutscene-sseri"
+      class="cutscene-sseri cutscene-sseri--hidden"
+      aria-hidden="true"
+      role="presentation"
+    >
+      <div class="cutscene-sseri__veil"></div>
+      <div class="cutscene-sseri__glow"></div>
+      <div class="cutscene-sseri__center">
+        <div class="cutscene-sseri__revolver" aria-hidden="true">
+          <svg viewBox="0 0 120 160" xmlns="http://www.w3.org/2000/svg" class="cutscene-sseri__revolver-svg">
+            <ellipse cx="60" cy="42" rx="34" ry="36" fill="#3d3d3d" stroke="#1a1a1a" stroke-width="2" />
+            <circle cx="60" cy="42" r="14" fill="#222" stroke="#555" stroke-width="1" />
+            <rect x="52" y="72" width="16" height="62" rx="3" fill="#2a2a2a" stroke="#111" stroke-width="1" />
+            <path d="M 44 134 L 76 134 L 72 152 L 48 152 Z" fill="#1f1f1f" />
+            <rect x="54" y="8" width="12" height="22" rx="2" fill="#4a4a4a" />
+          </svg>
+        </div>
+      </div>
+      <div class="cutscene-sseri__muzzle" aria-hidden="true"></div>
+      <div class="cutscene-sseri__flash" aria-hidden="true"></div>
+    </div>
+
+    <div
+      id="cutscene-ufo"
+      class="cutscene-ufo cutscene-ufo--hidden"
+      aria-hidden="true"
+      role="presentation"
+    >
+      <div class="cutscene-ufo__veil"></div>
+      <div class="cutscene-ufo__stars" aria-hidden="true"></div>
+      <div class="cutscene-ufo__rise" aria-hidden="true">
+        <span class="cutscene-ufo__rise-star"></span>
+        <span class="cutscene-ufo__rise-trail"></span>
+      </div>
+      <div class="cutscene-ufo__ufo" aria-hidden="true">
+        <span class="cutscene-ufo__dome"></span>
+        <span class="cutscene-ufo__disc"></span>
+        <span class="cutscene-ufo__lights"></span>
+      </div>
+      <div class="cutscene-ufo__boom" aria-hidden="true"></div>
+    </div>
+
+    <div
       id="legend-reveal"
       class="legend-reveal legend-reveal--hidden"
       aria-hidden="true"
       role="presentation"
     >
-      <p class="legend-reveal__eyebrow">Efsanevi aura</p>
+      <p class="legend-reveal__eyebrow" id="legend-reveal-eyebrow">Efsanevi aura</p>
       <p class="legend-reveal__name" id="legend-reveal-name"></p>
       <p class="legend-reveal__odds" id="legend-reveal-odds"></p>
     </div>
@@ -168,6 +233,33 @@
         <div class="modal__actions">
           <button type="button" class="btn btn--modal-secondary" id="quick-cancel">İptal</button>
           <button type="button" class="btn btn--modal-primary" id="quick-submit">Tamam</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="test-modal" class="modal modal--hidden" aria-hidden="true">
+      <div class="modal__backdrop" id="test-backdrop" tabindex="-1"></div>
+      <div
+        class="modal__panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="test-modal-title"
+      >
+        <h2 class="modal__title" id="test-modal-title">Test</h2>
+        <p class="modal__text">Test kodunu gir</p>
+        <input
+          id="test-code"
+          class="modal__input"
+          type="password"
+          inputmode="numeric"
+          autocomplete="off"
+          maxlength="32"
+          placeholder="Kod"
+        />
+        <p id="test-error" class="modal__error modal__error--hidden" role="alert"></p>
+        <div class="modal__actions">
+          <button type="button" class="btn btn--modal-secondary" id="test-cancel">İptal</button>
+          <button type="button" class="btn btn--modal-primary" id="test-submit">Tamam</button>
         </div>
       </div>
     </div>

@@ -6,10 +6,15 @@
   const AUTO_INTERVAL_MS = 2000;
   const SPLASH_MS = 1200;
   const CUTSCENE_MS = 8000;
+  /** Tier 1 (nova) cutscene süresi — CSS ile uyumlu. */
+  const NOVA_CUTSCENE_MS = 4500;
   /** Cutscene bittikten sonra sallanan yazı süresi (ms). */
   const LEGEND_REVEAL_HOLD_MS = 3000;
   /** Yazının yavaşça kaybolması (CSS transition ile uyumlu). */
   const LEGEND_REVEAL_FADE_MS = 1250;
+  /** Nova sonrası isim kartı (tier 1). */
+  const MID_REVEAL_HOLD_MS = 2200;
+  const MID_REVEAL_FADE_MS = 1000;
   const LUCK_PER_SPIN = 3;
   const LUCK_WEIGHT_SCALE = 0.038;
   const W_COMMON = 1;
@@ -23,6 +28,19 @@
   const POTION_CHANCE_PER_SEC = 8;
   const CROWN_BONUS = 6;
   const GLOVE_BONUS = 9;
+  /** 4000–6000 arası paydalı auralardan Eternal iksir üretimi. */
+  const CRAFT_ETERNAL_MIN_ONE_IN = 4000;
+  /** 6000 ile yeni nadirler (ör. UFO 6322) dahil. */
+  const CRAFT_ETERNAL_MAX_ONE_IN = 6322;
+  const ETERNAL_CRAFT_COST = 18;
+  /** Eternal içildiğinde: sonraki N çevirmede ek şans. */
+  const ETERNAL_SPIN_CHARGES = 25;
+  const ETERNAL_LUCK_PER_SPIN = 30;
+  /** Eternal Infinit: bir sonraki çevirmede kullanılan “şans” ölçeği (10^30). */
+  const INFINIT_LUCK_BOOST = 1e30;
+  /** Infinit çevirmesinde payda büyüdükçe ağırlık: UFO / Sseri tetik vb. baskın çıkar. */
+  const INFINIT_RARE_ONEIN_POWER = 2.85;
+  const TEST_INFINIT_CODE = "88882254";
 
   const CRAFT_RECIPES = Object.freeze([
     {
@@ -30,24 +48,38 @@
       name: "İksir",
       desc: "Her saniye +8 şans birikir (500 sn).",
       cost: 12,
+      icon: "potion",
     },
     {
       id: "crown",
       name: "Taç",
       desc: `+${CROWN_BONUS} şans — kalıcı.`,
       cost: 22,
+      icon: "crown",
     },
     {
       id: "glove",
       name: "Eldiven",
       desc: `+${GLOVE_BONUS} şans — kalıcı.`,
       cost: 30,
+      icon: "glove",
+    },
+    {
+      id: "eternal",
+      name: "Eternal",
+      desc: `Kullan: ${ETERNAL_SPIN_CHARGES} çevirmede +${ETERNAL_LUCK_PER_SPIN} şans.`,
+      cost: ETERNAL_CRAFT_COST,
+      icon: "eternal",
     },
   ]);
 
-  const STORAGE_KEY = "aura-game-state-v4";
+  const STORAGE_KEY = "aura-game-state-v5";
 
-  /** @typedef {{ id: string; name: string; color: string; oneIn: number; oneInLabel: string; weightDenom?: number }} AuraDef */
+  /**
+   * cutsceneTier: 1 = nova, 2 = yıldız (veya oneIn ≥ 5000).
+   * cutsceneKind: özel sahneler (Steamer yazı).
+   * @typedef {{ id: string; name: string; color: string; oneIn: number; oneInLabel: string; weightDenom?: number; cutsceneTier?: 1 | 2; cutsceneKind?: 'sseri' | 'ufo' }} AuraDef
+   */
 
   const AURAS_1_IN_100 = /** @type {const} */ ([
     { id: "tr_tost", name: "Tost Makinesi Huzuru", color: "#ffe082" },
@@ -78,6 +110,22 @@
     { id: "sirius", name: "Sirius", color: "#40c4ff", oneIn: 3762, oneInLabel: "1 / 3.762" },
     { id: "bontirli", name: "Bontirli", color: "#ff6e40", oneIn: 4083, oneInLabel: "1 / 4.083" },
     { id: "ozel_cicek", name: "Özel Çiçek", color: "#ff4081", oneIn: 5674, oneInLabel: "1 / 5.674" },
+    {
+      id: "sseri_tetik",
+      name: "Sseri tetik",
+      color: "#ff7043",
+      oneIn: 5988,
+      oneInLabel: "1 / 5.988",
+      cutsceneKind: "sseri",
+    },
+    {
+      id: "ufo",
+      name: "UFO",
+      color: "#69f0ae",
+      oneIn: 6322,
+      oneInLabel: "1 / 6.322",
+      cutsceneKind: "ufo",
+    },
   ]);
 
   const AURAS_100_FULL = AURAS_1_IN_100.map((a) => ({
@@ -92,7 +140,7 @@
   const ALL_AURAS = /** @type {AuraDef[]} */ ([AURA_COMMON, ...AURAS_100_FULL, ...RARE_EXACT]);
   const auraMap = new Map(ALL_AURAS.map((a) => [a.id, a]));
 
-  /** @typedef {{ counts: Record<string, number>; equippedId: string | null; autoRoll: boolean; luckPoints: number; fastSpin: boolean; potionSince: number; hasCrown: boolean; hasGlove: boolean }} GameState */
+  /** @typedef {{ counts: Record<string, number>; equippedId: string | null; autoRoll: boolean; luckPoints: number; fastSpin: boolean; potionSince: number; hasCrown: boolean; hasGlove: boolean; eternalVials: number; eternalInfinitVials: number; eternalBonusSpinsLeft: number; nextRollInfinitLuck: boolean }} GameState */
 
   /** @type {GameState} */
   let state = {
@@ -104,6 +152,10 @@
     potionSince: 0,
     hasCrown: false,
     hasGlove: false,
+    eternalVials: 0,
+    eternalInfinitVials: 0,
+    eternalBonusSpinsLeft: 0,
+    nextRollInfinitLuck: false,
   };
 
   let lastRoll = /** @type {AuraDef | null} */ (null);
@@ -135,7 +187,9 @@
   const elBtnQuick = document.getElementById("btn-quick");
   const elBtnAuto = document.getElementById("btn-auto");
   const elCutscene = document.getElementById("cutscene");
+  const elCutsceneNova = document.getElementById("cutscene-nova");
   const elLegendReveal = document.getElementById("legend-reveal");
+  const elLegendRevealEyebrow = document.getElementById("legend-reveal-eyebrow");
   const elLegendRevealName = document.getElementById("legend-reveal-name");
   const elLegendRevealOdds = document.getElementById("legend-reveal-odds");
   const elQuickModal = document.getElementById("quick-modal");
@@ -144,6 +198,24 @@
   const elQuickError = document.getElementById("quick-error");
   const elQuickSubmit = document.getElementById("quick-submit");
   const elQuickCancel = document.getElementById("quick-cancel");
+  const elBtnTest = document.getElementById("btn-test");
+  const elTestModal = document.getElementById("test-modal");
+  const elTestBackdrop = document.getElementById("test-backdrop");
+  const elTestCode = document.getElementById("test-code");
+  const elTestError = document.getElementById("test-error");
+  const elTestSubmit = document.getElementById("test-submit");
+  const elTestCancel = document.getElementById("test-cancel");
+  const elCutsceneSseri = document.getElementById("cutscene-sseri");
+  const elCutsceneUfo = document.getElementById("cutscene-ufo");
+
+  /** Işık + revolver + patlama (~5,5 sn), ardından isim kartı 6 sn. */
+  const SSERI_CUTSCENE_MS = 5500;
+  const SSERI_NAME_HOLD_MS = 6000;
+  const SSERI_NAME_FADE_MS = 900;
+  /** Yıldız 3 sn + yükseliş + UFO + patlama — toplam 8 sn. */
+  const UFO_CUTSCENE_MS = 8000;
+  const UFO_NAME_HOLD_MS = 2400;
+  const UFO_NAME_FADE_MS = 900;
 
   function auraById(id) {
     return auraMap.get(id) ?? null;
@@ -157,8 +229,30 @@
     return state.fastSpin ? 32 : 90;
   }
 
-  function isLegendaryCutscene(aura) {
-    return aura.oneIn >= LEGENDARY_MIN_ONE_IN;
+  function getCutsceneKind(/** @type {AuraDef} */ aura) {
+    if (aura.cutsceneKind === "sseri") return "sseri";
+    if (aura.cutsceneKind === "ufo") return "ufo";
+    if (aura.cutsceneTier === 2) return "star";
+    if (aura.cutsceneTier === 1) return "nova";
+    if (aura.oneIn >= LEGENDARY_MIN_ONE_IN) return "star";
+    return "none";
+  }
+
+  /** Eski kod uyumu: sadece yıldız / 5000+ sunumu. */
+  function getCutsceneTier(aura) {
+    const k = getCutsceneKind(aura);
+    if (k === "star") return 2;
+    if (k === "nova") return 1;
+    return 0;
+  }
+
+  /** Yıldız cutscene + kalın yazı (tier 2). */
+  function isStarPresentationAura(aura) {
+    return getCutsceneKind(aura) === "star";
+  }
+
+  function usesSteamerFont(aura) {
+    return Boolean(aura && (aura.cutsceneKind === "sseri" || aura.cutsceneKind === "ufo"));
   }
 
   function isPotionActive() {
@@ -197,8 +291,40 @@
     return (1 / denom) * mult;
   }
 
+  /** Eternal Infinit içildiğinde: çok yüksek paydalı nadir auralar baskın (INFINIT_LUCK_BOOST = 10^30). */
+  function pickInfinitAura() {
+    const oneInPower = INFINIT_RARE_ONEIN_POWER + Math.log10(INFINIT_LUCK_BOOST) / 250;
+    /** @type {{ aura: AuraDef; w: number }[]} */
+    const pool = [];
+    for (const a of RARE_EXACT) {
+      pool.push({
+        aura: a,
+        w: Math.pow(Math.max(1, a.oneIn), oneInPower),
+      });
+    }
+    for (const a of AURAS_100_FULL) {
+      pool.push({ aura: a, w: 1e-12 });
+    }
+    pool.push({ aura: AURA_COMMON, w: 1e-18 });
+
+    let t = 0;
+    for (const e of pool) t += e.w;
+    let r = Math.random() * t;
+    for (const e of pool) {
+      r -= e.w;
+      if (r <= 0) return e.aura;
+    }
+    return pool[pool.length - 1].aura;
+  }
+
   function pickRandomAura() {
-    const luck = getEffectiveLuckForRoll();
+    let luck = getEffectiveLuckForRoll();
+    if (state.eternalBonusSpinsLeft > 0) luck += ETERNAL_LUCK_PER_SPIN;
+    if (state.nextRollInfinitLuck) {
+      state.nextRollInfinitLuck = false;
+      return pickInfinitAura();
+    }
+
     /** @type {{ aura: AuraDef; w: number }[]} */
     const pool = [{ aura: AURA_COMMON, w: W_COMMON }];
     for (const a of AURAS_100_FULL) pool.push({ aura: a, w: weightForAura(a, luck) });
@@ -225,6 +351,29 @@
   function tryConsumeCraftMaterials(need) {
     let left = need;
     for (const a of listCraftMaterials()) {
+      const have = state.counts[a.id] || 0;
+      if (have <= 0) continue;
+      const take = Math.min(have, left);
+      state.counts[a.id] = have - take;
+      left -= take;
+      if (left <= 0) return true;
+    }
+    return false;
+  }
+
+  function listEternalCraftMaterials() {
+    return ALL_AURAS.filter(
+      (a) => a.oneIn >= CRAFT_ETERNAL_MIN_ONE_IN && a.oneIn <= CRAFT_ETERNAL_MAX_ONE_IN,
+    ).sort((x, y) => x.oneIn - y.oneIn);
+  }
+
+  function countEternalMaterialsTotal() {
+    return listEternalCraftMaterials().reduce((s, a) => s + (state.counts[a.id] || 0), 0);
+  }
+
+  function tryConsumeEternalMaterials(need) {
+    let left = need;
+    for (const a of listEternalCraftMaterials()) {
       const have = state.counts[a.id] || 0;
       if (have <= 0) continue;
       const take = Math.min(have, left);
@@ -270,7 +419,8 @@
 
   function loadState() {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      let raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) raw = localStorage.getItem("aura-game-state-v4");
       if (!raw) return;
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed === "object") {
@@ -288,6 +438,20 @@
             : 0;
         state.hasCrown = Boolean(parsed.hasCrown);
         state.hasGlove = Boolean(parsed.hasGlove);
+        state.eternalVials =
+          typeof parsed.eternalVials === "number" && Number.isFinite(parsed.eternalVials)
+            ? Math.max(0, Math.floor(parsed.eternalVials))
+            : 0;
+        state.eternalInfinitVials =
+          typeof parsed.eternalInfinitVials === "number" && Number.isFinite(parsed.eternalInfinitVials)
+            ? Math.max(0, Math.floor(parsed.eternalInfinitVials))
+            : 0;
+        state.eternalBonusSpinsLeft =
+          typeof parsed.eternalBonusSpinsLeft === "number" &&
+          Number.isFinite(parsed.eternalBonusSpinsLeft)
+            ? Math.max(0, Math.floor(parsed.eternalBonusSpinsLeft))
+            : 0;
+        state.nextRollInfinitLuck = Boolean(parsed.nextRollInfinitLuck);
         if (state.equippedId && !auraById(state.equippedId)) state.equippedId = null;
       }
     } catch {
@@ -308,6 +472,10 @@
           potionSince: state.potionSince,
           hasCrown: state.hasCrown,
           hasGlove: state.hasGlove,
+          eternalVials: state.eternalVials,
+          eternalInfinitVials: state.eternalInfinitVials,
+          eternalBonusSpinsLeft: state.eternalBonusSpinsLeft,
+          nextRollInfinitLuck: state.nextRollInfinitLuck,
         }),
       );
     } catch {
@@ -321,7 +489,12 @@
     const fast = state.fastSpin ? " · Hızlı mod: 0,7 sn" : "";
     const craft = getCraftPassiveLuck();
     const craftTxt = craft > 0 ? ` · Eşya şansı: +${craft}` : "";
-    elLuckReadout.textContent = `Şans birikimi: +${state.luckPoints} (çevir +${LUCK_PER_SPIN})${craftTxt}${fast}`;
+    const eternalTxt =
+      state.eternalBonusSpinsLeft > 0
+        ? ` · Eternal çevirme: ${state.eternalBonusSpinsLeft} (+${ETERNAL_LUCK_PER_SPIN})`
+        : "";
+    const infTxt = state.nextRollInfinitLuck ? " · Sonraki çevirme: Infinit şans" : "";
+    elLuckReadout.textContent = `Şans birikimi: +${state.luckPoints} (çevir +${LUCK_PER_SPIN})${craftTxt}${eternalTxt}${infTxt}${fast}`;
   }
 
   function renderCraftPanel() {
@@ -330,13 +503,28 @@
     elCraftList.innerHTML = "";
     const matTotal = countCraftMaterialsTotal();
 
+    const iconEmoji = /** @type {Record<string, string>} */ ({
+      potion: "🧪",
+      crown: "👑",
+      glove: "🧤",
+      eternal: "✨",
+    });
+
     for (const recipe of CRAFT_RECIPES) {
       const li = document.createElement("li");
       li.className = "craft-card";
 
+      const head = document.createElement("div");
+      head.className = "craft-card__head";
       const h = document.createElement("p");
       h.className = "craft-card__name";
       h.textContent = recipe.name;
+      const ic = document.createElement("span");
+      ic.className = `craft-card__icon craft-card__icon--${recipe.icon}`;
+      ic.setAttribute("aria-hidden", "true");
+      ic.textContent = iconEmoji[recipe.icon] || "·";
+      head.appendChild(h);
+      head.appendChild(ic);
 
       const d = document.createElement("p");
       d.className = "craft-card__desc";
@@ -344,7 +532,11 @@
 
       const c = document.createElement("p");
       c.className = "craft-card__cost";
-      c.textContent = `Malzeme: ${recipe.cost} aura (1/200 altı, envanterden düşer)`;
+      const costLine =
+        recipe.id === "eternal"
+          ? `Malzeme: ${recipe.cost} aura (1/${CRAFT_ETERNAL_MIN_ONE_IN} ile 1/${CRAFT_ETERNAL_MAX_ONE_IN} arası paydalar, envanterden düşer)`
+          : `Malzeme: ${recipe.cost} aura (1/${CRAFT_MAX_ONE_IN} altı, envanterden düşer)`;
+      c.textContent = costLine;
 
       const st = document.createElement("p");
       st.className = "craft-card__status";
@@ -398,9 +590,25 @@
           renderInventory();
           renderLuckReadout();
         });
+      } else if (recipe.id === "eternal") {
+        const eternalMat = countEternalMaterialsTotal();
+        st.textContent =
+          state.eternalVials > 0
+            ? `Env. Eternal: ×${state.eternalVials} · Bonus çevirme: ${state.eternalBonusSpinsLeft}`
+            : "Eternal şişesi yok";
+        btn.disabled = eternalMat < recipe.cost;
+        btn.addEventListener("click", () => {
+          if (countEternalMaterialsTotal() < recipe.cost) return;
+          if (!tryConsumeEternalMaterials(recipe.cost)) return;
+          state.eternalVials += 1;
+          saveState();
+          renderCraftPanel();
+          renderInventory();
+          renderLuckReadout();
+        });
       }
 
-      li.appendChild(h);
+      li.appendChild(head);
       li.appendChild(d);
       li.appendChild(c);
       li.appendChild(st);
@@ -467,6 +675,7 @@
     isSpinning = false;
     elBtnSpin.disabled = false;
     if (elBtnQuick) elBtnQuick.disabled = false;
+    if (elBtnTest) elBtnTest.disabled = false;
     if (elBtnToCraft) elBtnToCraft.disabled = false;
     elAuraStage.classList.remove("aura-stage--spinning");
     renderAuraStage();
@@ -474,21 +683,27 @@
     if (state.autoRoll) scheduleAutoSpin();
   }
 
-  function startLegendRevealAfterCutscene(rolled) {
+  function startRevealOverlay(rolled, eyebrow, holdMs, fadeMs, opts) {
     clearLegendRevealTimers();
-    if (!elLegendReveal || !elLegendRevealName || !elLegendRevealOdds) {
+    if (!elLegendReveal || !elLegendRevealEyebrow || !elLegendRevealName || !elLegendRevealOdds) {
       finishLegendarySequence();
       return;
     }
 
     const reduced = prefersReducedMotion();
-    const holdMs = reduced ? 650 : LEGEND_REVEAL_HOLD_MS;
-    const fadeMs = reduced ? 400 : LEGEND_REVEAL_FADE_MS;
+    const h = reduced ? Math.min(holdMs, 650) : holdMs;
+    const f = reduced ? Math.min(fadeMs, 450) : fadeMs;
+    const steamer = Boolean(opts && opts.steamer);
+    const shake = Boolean(opts && opts.shake);
+    elLegendRevealName.classList.remove("font-steamer", "legend-reveal__name--shake");
 
+    elLegendRevealEyebrow.textContent = eyebrow;
     elLegendRevealName.textContent = rolled.name;
     elLegendRevealOdds.textContent = rolled.oneInLabel;
     elLegendReveal.style.setProperty("--lr-color", rolled.color);
     elLegendReveal.style.transitionDuration = reduced ? "0.38s" : "";
+    elLegendRevealName.classList.toggle("font-steamer", steamer);
+    elLegendRevealName.classList.toggle("legend-reveal__name--shake", shake);
     elLegendReveal.classList.remove("legend-reveal--hidden", "legend-reveal--fade");
     elLegendReveal.setAttribute("aria-hidden", "false");
     void elLegendReveal.offsetWidth;
@@ -499,9 +714,95 @@
         elLegendReveal.classList.add("legend-reveal--hidden");
         elLegendReveal.classList.remove("legend-reveal--fade");
         elLegendReveal.setAttribute("aria-hidden", "true");
+        elLegendRevealName.classList.remove("font-steamer", "legend-reveal__name--shake");
         finishLegendarySequence();
-      }, fadeMs);
-    }, holdMs);
+      }, f);
+    }, h);
+  }
+
+  function startLegendRevealAfterCutscene(rolled) {
+    startRevealOverlay(rolled, "Efsanevi aura", LEGEND_REVEAL_HOLD_MS, LEGEND_REVEAL_FADE_MS);
+  }
+
+  function startMidRevealAfterNova(rolled) {
+    startRevealOverlay(rolled, "Nadir patlama", MID_REVEAL_HOLD_MS, MID_REVEAL_FADE_MS);
+  }
+
+  function startSseriRevealAfterCutscene(rolled) {
+    startRevealOverlay(rolled, "Özel aura", SSERI_NAME_HOLD_MS, SSERI_NAME_FADE_MS, {
+      steamer: true,
+      shake: true,
+    });
+  }
+
+  function startUfoRevealAfterCutscene(rolled) {
+    startRevealOverlay(rolled, "Özel aura", UFO_NAME_HOLD_MS, UFO_NAME_FADE_MS, { steamer: true });
+  }
+
+  function runNovaCutscene(rolled, onDone) {
+    if (!elCutsceneNova) {
+      onDone();
+      return;
+    }
+    clearAutoTimer();
+    elCutsceneNova.style.setProperty("--cn-color", rolled.color);
+    elCutsceneNova.classList.remove("cutscene-nova--hidden", "cutscene-nova--run", "cutscene-nova--fast");
+    void elCutsceneNova.offsetWidth;
+    elCutsceneNova.classList.add("cutscene-nova--run");
+    elCutsceneNova.setAttribute("aria-hidden", "false");
+    if (prefersReducedMotion()) elCutsceneNova.classList.add("cutscene-nova--fast");
+
+    const ms = prefersReducedMotion() ? 500 : NOVA_CUTSCENE_MS;
+    window.setTimeout(() => {
+      elCutsceneNova.classList.remove("cutscene-nova--run", "cutscene-nova--fast");
+      elCutsceneNova.classList.add("cutscene-nova--hidden");
+      elCutsceneNova.setAttribute("aria-hidden", "true");
+      onDone();
+    }, ms);
+  }
+
+  function runSseriCutscene(rolled, onDone) {
+    if (!elCutsceneSseri) {
+      onDone();
+      return;
+    }
+    clearAutoTimer();
+    elCutsceneSseri.style.setProperty("--sseri-color", rolled.color);
+    elCutsceneSseri.classList.remove("cutscene-sseri--hidden", "cutscene-sseri--run", "cutscene-sseri--fast");
+    void elCutsceneSseri.offsetWidth;
+    elCutsceneSseri.classList.add("cutscene-sseri--run");
+    elCutsceneSseri.setAttribute("aria-hidden", "false");
+    if (prefersReducedMotion()) elCutsceneSseri.classList.add("cutscene-sseri--fast");
+
+    const ms = prefersReducedMotion() ? 600 : SSERI_CUTSCENE_MS;
+    window.setTimeout(() => {
+      elCutsceneSseri.classList.remove("cutscene-sseri--run", "cutscene-sseri--fast");
+      elCutsceneSseri.classList.add("cutscene-sseri--hidden");
+      elCutsceneSseri.setAttribute("aria-hidden", "true");
+      onDone();
+    }, ms);
+  }
+
+  function runUfoCutscene(rolled, onDone) {
+    if (!elCutsceneUfo) {
+      onDone();
+      return;
+    }
+    clearAutoTimer();
+    elCutsceneUfo.style.setProperty("--ufo-color", rolled.color);
+    elCutsceneUfo.classList.remove("cutscene-ufo--hidden", "cutscene-ufo--run", "cutscene-ufo--fast");
+    void elCutsceneUfo.offsetWidth;
+    elCutsceneUfo.classList.add("cutscene-ufo--run");
+    elCutsceneUfo.setAttribute("aria-hidden", "false");
+    if (prefersReducedMotion()) elCutsceneUfo.classList.add("cutscene-ufo--fast");
+
+    const ms = prefersReducedMotion() ? 700 : UFO_CUTSCENE_MS;
+    window.setTimeout(() => {
+      elCutsceneUfo.classList.remove("cutscene-ufo--run", "cutscene-ufo--fast");
+      elCutsceneUfo.classList.add("cutscene-ufo--hidden");
+      elCutsceneUfo.setAttribute("aria-hidden", "true");
+      onDone();
+    }, ms);
   }
 
   function runLegendaryCutscene(rolled, onDone) {
@@ -544,6 +845,7 @@
 
     elBtnSpin.disabled = true;
     if (elBtnQuick) elBtnQuick.disabled = true;
+    if (elBtnTest) elBtnTest.disabled = true;
     if (elBtnToCraft) elBtnToCraft.disabled = true;
     elAuraStage.classList.add("aura-stage--spinning");
     elAuraEyebrow.textContent = "Çevriliyor";
@@ -570,7 +872,11 @@
   function finishSpin() {
     spinFinishTimerId = 0;
     clearTeaser();
+    const hadEternalCharge = state.eternalBonusSpinsLeft > 0;
     const rolled = pickRandomAura();
+    if (hadEternalCharge) {
+      state.eternalBonusSpinsLeft = Math.max(0, state.eternalBonusSpinsLeft - 1);
+    }
     lastRoll = rolled;
     state.counts[rolled.id] = (state.counts[rolled.id] || 0) + 1;
 
@@ -581,10 +887,32 @@
     saveState();
     renderLuckReadout();
 
-    if (isLegendaryCutscene(rolled)) {
+    const kind = getCutsceneKind(rolled);
+    if (kind === "sseri") {
+      setOrbsSolidColor(rolled.color);
+      runSseriCutscene(rolled, () => {
+        startSseriRevealAfterCutscene(rolled);
+      });
+      return;
+    }
+    if (kind === "ufo") {
+      setOrbsSolidColor(rolled.color);
+      runUfoCutscene(rolled, () => {
+        startUfoRevealAfterCutscene(rolled);
+      });
+      return;
+    }
+    if (kind === "star") {
       setOrbsSolidColor(rolled.color);
       runLegendaryCutscene(rolled, () => {
         startLegendRevealAfterCutscene(rolled);
+      });
+      return;
+    }
+    if (kind === "nova") {
+      setOrbsSolidColor(rolled.color);
+      runNovaCutscene(rolled, () => {
+        startMidRevealAfterNova(rolled);
       });
       return;
     }
@@ -592,6 +920,7 @@
     isSpinning = false;
     elBtnSpin.disabled = false;
     if (elBtnQuick) elBtnQuick.disabled = false;
+    if (elBtnTest) elBtnTest.disabled = false;
     if (elBtnToCraft) elBtnToCraft.disabled = false;
     elAuraStage.classList.remove("aura-stage--spinning");
     renderAuraStage();
@@ -607,14 +936,15 @@
       elAuraName.textContent = lastRoll.name;
       elAuraOdds.textContent = lastRoll.oneInLabel;
       elAuraStage.style.setProperty("--aura-color", lastRoll.color);
-      elAuraName.classList.toggle("aura-stage__name--legendary", isLegendaryCutscene(lastRoll));
+      elAuraName.classList.toggle("aura-stage__name--legendary", isStarPresentationAura(lastRoll));
+      elAuraName.classList.toggle("font-steamer", usesSteamerFont(lastRoll));
       setOrbsSolidColor(lastRoll.color);
     } else {
       elAuraEyebrow.textContent = "";
       elAuraName.textContent = "Çevirmeye hazır";
       elAuraOdds.textContent = "Şansını dene";
       elAuraStage.style.setProperty("--aura-color", "#fff");
-      elAuraName.classList.remove("aura-stage__name--legendary");
+      elAuraName.classList.remove("aura-stage__name--legendary", "font-steamer");
       setOrbPalette(0);
     }
   }
@@ -628,7 +958,65 @@
   function renderInventory() {
     elInventoryList.innerHTML = "";
     const owned = ALL_AURAS.filter((a) => (state.counts[a.id] || 0) > 0);
-    elInventoryEmpty.classList.toggle("inventory__empty--hidden", owned.length > 0);
+    const hasConsumables = state.eternalVials > 0 || state.eternalInfinitVials > 0;
+    elInventoryEmpty.classList.toggle("inventory__empty--hidden", owned.length > 0 || hasConsumables);
+
+    if (state.eternalVials > 0) {
+      const li = document.createElement("li");
+      const wrap = document.createElement("div");
+      wrap.className = "inventory-consumable";
+      const row = document.createElement("div");
+      row.className = "inventory-consumable__row";
+      const label = document.createElement("span");
+      label.className = "inventory-consumable__label";
+      label.textContent = `Eternal ×${state.eternalVials}`;
+      const useBtn = document.createElement("button");
+      useBtn.type = "button";
+      useBtn.className = "btn btn--consumable";
+      useBtn.textContent = "Kullan";
+      useBtn.addEventListener("click", () => {
+        if (state.eternalVials <= 0) return;
+        state.eternalVials -= 1;
+        state.eternalBonusSpinsLeft += ETERNAL_SPIN_CHARGES;
+        saveState();
+        renderInventory();
+        renderCraftPanel();
+        renderLuckReadout();
+      });
+      row.appendChild(label);
+      row.appendChild(useBtn);
+      wrap.appendChild(row);
+      li.appendChild(wrap);
+      elInventoryList.appendChild(li);
+    }
+
+    if (state.eternalInfinitVials > 0) {
+      const li = document.createElement("li");
+      const wrap = document.createElement("div");
+      wrap.className = "inventory-consumable";
+      const row = document.createElement("div");
+      row.className = "inventory-consumable__row";
+      const label = document.createElement("span");
+      label.className = "inventory-consumable__label inventory-consumable__label--infinit";
+      label.textContent = `Eternal Infinit ×${state.eternalInfinitVials}`;
+      const drinkBtn = document.createElement("button");
+      drinkBtn.type = "button";
+      drinkBtn.className = "btn btn--consumable";
+      drinkBtn.textContent = "İç";
+      drinkBtn.addEventListener("click", () => {
+        if (state.eternalInfinitVials <= 0) return;
+        state.eternalInfinitVials -= 1;
+        state.nextRollInfinitLuck = true;
+        saveState();
+        renderInventory();
+        renderLuckReadout();
+      });
+      row.appendChild(label);
+      row.appendChild(drinkBtn);
+      wrap.appendChild(row);
+      li.appendChild(wrap);
+      elInventoryList.appendChild(li);
+    }
 
     for (const a of owned) {
       const li = document.createElement("li");
@@ -696,6 +1084,42 @@
     elQuickModal.setAttribute("aria-hidden", "true");
   }
 
+  function openTestModal() {
+    if (!elTestModal || isSpinning) return;
+    elTestModal.classList.remove("modal--hidden");
+    elTestModal.setAttribute("aria-hidden", "false");
+    if (elTestError) {
+      elTestError.textContent = "";
+      elTestError.classList.add("modal__error--hidden");
+    }
+    if (elTestCode) {
+      elTestCode.value = "";
+      elTestCode.focus();
+    }
+  }
+
+  function closeTestModal() {
+    if (!elTestModal) return;
+    elTestModal.classList.add("modal--hidden");
+    elTestModal.setAttribute("aria-hidden", "true");
+  }
+
+  function submitTestCode() {
+    const code = (elTestCode && elTestCode.value.trim()) || "";
+    if (code === TEST_INFINIT_CODE) {
+      state.eternalInfinitVials += 1;
+      saveState();
+      closeTestModal();
+      renderInventory();
+      renderLuckReadout();
+      return;
+    }
+    if (elTestError) {
+      elTestError.textContent = "Yanlış kod";
+      elTestError.classList.remove("modal__error--hidden");
+    }
+  }
+
   function submitQuickCode() {
     const code = (elQuickCode && elQuickCode.value.trim()) || "";
     if (code === FAST_SPIN_CODE) {
@@ -717,6 +1141,18 @@
       if (!isSpinning) startSpin();
     });
     if (elBtnQuick) elBtnQuick.addEventListener("click", () => openQuickModal());
+    if (elBtnTest) elBtnTest.addEventListener("click", () => openTestModal());
+    if (elTestBackdrop) elTestBackdrop.addEventListener("click", () => closeTestModal());
+    if (elTestCancel) elTestCancel.addEventListener("click", () => closeTestModal());
+    if (elTestSubmit) elTestSubmit.addEventListener("click", () => submitTestCode());
+    if (elTestCode) {
+      elTestCode.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          submitTestCode();
+        }
+      });
+    }
     if (elBtnToCraft) elBtnToCraft.addEventListener("click", () => openCraftView());
     if (elBtnFromCraft) elBtnFromCraft.addEventListener("click", () => closeCraftView());
     if (elQuickBackdrop) elQuickBackdrop.addEventListener("click", () => closeQuickModal());
