@@ -1143,6 +1143,10 @@ body {
   opacity: 0;
 }
 
+.legend-reveal--gray {
+  background: rgba(72, 76, 80, 0.96);
+}
+
 .legend-reveal__eyebrow {
   margin: 0 0 10px;
   font-size: 0.72rem;
@@ -1188,6 +1192,66 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .legend-reveal__name {
+    animation: none;
+  }
+}
+
+.font-fajita {
+  font-family: "JI Fajita", "JI Fajita Medium", fantasy, cursive, system-ui, sans-serif;
+}
+
+.font-anna {
+  font-family: "Anna", Georgia, "Times New Roman", serif;
+}
+
+.legend-reveal__eyebrow.font-anna {
+  font-size: clamp(1.35rem, 6.5vw, 2.4rem);
+  font-weight: 800;
+  letter-spacing: 0.35em;
+  color: var(--lr-color);
+  text-shadow:
+    0 0 18px var(--lr-color),
+    0 0 40px var(--lr-color);
+}
+
+.legend-reveal__name.font-fajita {
+  text-transform: none;
+  letter-spacing: 0.04em;
+  font-weight: 400;
+}
+
+.legend-reveal__name.font-anna {
+  text-transform: none;
+  letter-spacing: 0.06em;
+}
+
+.legend-reveal__name--shake-hard {
+  animation: legend-reveal-shake-hard 0.16s linear infinite;
+}
+
+@keyframes legend-reveal-shake-hard {
+  0% {
+    transform: translate(-10px, -4px) rotate(-5deg);
+  }
+  20% {
+    transform: translate(12px, 3px) rotate(4deg);
+  }
+  40% {
+    transform: translate(-8px, 5px) rotate(-3deg);
+  }
+  60% {
+    transform: translate(9px, -3px) rotate(5deg);
+  }
+  80% {
+    transform: translate(-11px, 2px) rotate(-4deg);
+  }
+  100% {
+    transform: translate(8px, -5px) rotate(3deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .legend-reveal__name--shake-hard {
     animation: none;
   }
 }
@@ -1886,6 +1950,314 @@ body {
   }
 }
 
+/* ——— Cutscene: Saatyönü ——— */
+.cutscene-saat {
+  --saat-glow: #29b6f6;
+  position: fixed;
+  inset: 0;
+  z-index: 255;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.cutscene-saat--hidden {
+  display: none;
+}
+
+.cutscene-saat__veil {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: #0d0d0d;
+}
+
+.cutscene-saat--run .cutscene-saat__veil {
+  animation: cutscene-saat-veil 4.5s ease-in-out forwards;
+}
+
+.cutscene-saat__glow {
+  position: absolute;
+  left: 64%;
+  top: 46%;
+  width: min(52vmin, 260px);
+  height: min(52vmin, 260px);
+  margin: calc(min(-26vmin, -130px)) 0 0 calc(min(-26vmin, -130px));
+  z-index: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%, #fff 0%, var(--saat-glow) 38%, transparent 68%);
+  opacity: 0;
+  filter: blur(2px);
+  box-shadow: 0 0 80px var(--saat-glow);
+}
+
+.cutscene-saat--run .cutscene-saat__glow {
+  animation: cutscene-saat-glow 4.5s ease-out forwards;
+}
+
+.cutscene-saat__stage {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+
+.cutscene-saat__hand-pivot {
+  position: absolute;
+  left: 6%;
+  bottom: 18%;
+  width: min(28vmin, 140px);
+  height: min(52vmin, 260px);
+  transform-origin: 50% 100%;
+}
+
+.cutscene-saat__hand {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 0 10px var(--saat-glow)) drop-shadow(0 4px 12px rgba(0, 0, 0, 0.55));
+}
+
+.cutscene-saat--run .cutscene-saat__hand-pivot {
+  animation: cutscene-saat-hand 4.5s cubic-bezier(0.45, 0, 0.2, 1) forwards;
+}
+
+.cutscene-saat--fast.cutscene-saat--run .cutscene-saat__veil,
+.cutscene-saat--fast.cutscene-saat--run .cutscene-saat__glow,
+.cutscene-saat--fast.cutscene-saat--run .cutscene-saat__hand-pivot {
+  animation-duration: 0.85s !important;
+}
+
+@keyframes cutscene-saat-hand {
+  0% {
+    transform: rotate(-118deg);
+  }
+  44% {
+    transform: rotate(642deg);
+  }
+  50% {
+    transform: rotate(668deg);
+  }
+  50.1%,
+  100% {
+    transform: rotate(674deg);
+  }
+}
+
+@keyframes cutscene-saat-glow {
+  0%,
+  44% {
+    opacity: 0;
+    transform: scale(0.35);
+  }
+  50% {
+    opacity: 0.95;
+    transform: scale(1);
+  }
+  50.1%,
+  93% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.15);
+  }
+}
+
+@keyframes cutscene-saat-veil {
+  0%,
+  48% {
+    background: #0a0a0a;
+  }
+  52%,
+  93% {
+    background: #6d7075;
+  }
+  100% {
+    background: #1a1a1a;
+  }
+}
+
+/* ——— Cutscene: Bilgesayarkorsanı ——— */
+.cutscene-bilge {
+  --bilge-accent: #00e676;
+  position: fixed;
+  inset: 0;
+  z-index: 255;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.cutscene-bilge--hidden {
+  display: none;
+}
+
+.cutscene-bilge__veil {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: #030303;
+}
+
+.cutscene-bilge__rain {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.cutscene-bilge__stream {
+  position: absolute;
+  top: -30%;
+  width: 28%;
+  font-family: ui-monospace, "Cascadia Code", monospace;
+  font-size: clamp(0.52rem, 2.1vw, 0.82rem);
+  font-weight: 700;
+  line-height: 1.45;
+  color: var(--bilge-accent);
+  text-shadow:
+    0 0 10px var(--bilge-accent),
+    0 0 24px var(--bilge-accent);
+  white-space: normal;
+  word-break: break-all;
+  opacity: 0;
+}
+
+.cutscene-bilge__stream--a {
+  left: 8%;
+}
+
+.cutscene-bilge__stream--b {
+  left: 38%;
+  animation-delay: 0.12s !important;
+}
+
+.cutscene-bilge__stream--c {
+  left: 66%;
+  animation-delay: 0.24s !important;
+}
+
+.cutscene-bilge--run .cutscene-bilge__stream {
+  animation: cutscene-bilge-rain 8.8s linear forwards;
+}
+
+.cutscene-bilge__white {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: #fafafa;
+  opacity: 0;
+}
+
+.cutscene-bilge--run .cutscene-bilge__white {
+  animation: cutscene-bilge-white 8.8s ease-out forwards;
+}
+
+.cutscene-bilge__crack {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cutscene-bilge--run .cutscene-bilge__crack {
+  animation: cutscene-bilge-crack 8.8s ease-out forwards;
+}
+
+.cutscene-bilge--run .cutscene-bilge__crack-path {
+  animation: cutscene-bilge-crack-draw 8.8s ease-out forwards;
+}
+
+.cutscene-bilge--fast.cutscene-bilge--run .cutscene-bilge__stream,
+.cutscene-bilge--fast.cutscene-bilge--run .cutscene-bilge__white,
+.cutscene-bilge--fast.cutscene-bilge--run .cutscene-bilge__crack,
+.cutscene-bilge--fast.cutscene-bilge--run .cutscene-bilge__crack-path {
+  animation-duration: 0.9s !important;
+}
+
+@keyframes cutscene-bilge-rain {
+  0% {
+    opacity: 0;
+    transform: translateY(-25vh);
+  }
+  4% {
+    opacity: 1;
+  }
+  34% {
+    transform: translateY(118vh);
+  }
+  34.1%,
+  40% {
+    opacity: 1;
+    transform: translateY(118vh);
+  }
+  40.1%,
+  100% {
+    opacity: 0;
+    transform: translateY(118vh);
+  }
+}
+
+@keyframes cutscene-bilge-white {
+  0%,
+  36% {
+    opacity: 0;
+  }
+  42% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes cutscene-bilge-crack {
+  0%,
+  44% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  48% {
+    opacity: 1;
+  }
+  62% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  78% {
+    opacity: 1;
+    transform: scale(1.08) rotate(1deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.35) rotate(4deg);
+  }
+}
+
+@keyframes cutscene-bilge-crack-draw {
+  0%,
+  44% {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+    opacity: 0;
+  }
+  46% {
+    opacity: 1;
+  }
+  58% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .cutscene-sseri--run .cutscene-sseri__glow,
   .cutscene-sseri--run .cutscene-sseri__revolver,
@@ -1895,6 +2267,19 @@ body {
   .cutscene-ufo--run .cutscene-ufo__rise-trail,
   .cutscene-ufo--run .cutscene-ufo__ufo,
   .cutscene-ufo--run .cutscene-ufo__boom {
+    animation-duration: 0.01ms !important;
+  }
+
+  .cutscene-saat--run .cutscene-saat__veil,
+  .cutscene-saat--run .cutscene-saat__glow,
+  .cutscene-saat--run .cutscene-saat__hand-pivot {
+    animation-duration: 0.01ms !important;
+  }
+
+  .cutscene-bilge--run .cutscene-bilge__stream,
+  .cutscene-bilge--run .cutscene-bilge__white,
+  .cutscene-bilge--run .cutscene-bilge__crack,
+  .cutscene-bilge--run .cutscene-bilge__crack-path {
     animation-duration: 0.01ms !important;
   }
 }

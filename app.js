@@ -77,8 +77,8 @@
 
   /**
    * cutsceneTier: 1 = nova, 2 = yıldız (veya oneIn ≥ 5000).
-   * cutsceneKind: özel sahneler (Steamer yazı).
-   * @typedef {{ id: string; name: string; color: string; oneIn: number; oneInLabel: string; weightDenom?: number; cutsceneTier?: 1 | 2; cutsceneKind?: 'sseri' | 'ufo' }} AuraDef
+   * cutsceneKind: özel sahneler (Steamer / saat / bilge yazı).
+   * @typedef {{ id: string; name: string; color: string; oneIn: number; oneInLabel: string; weightDenom?: number; cutsceneTier?: 1 | 2; cutsceneKind?: 'sseri' | 'ufo' | 'saatyonu' | 'bilge' }} AuraDef
    */
 
   const AURAS_1_IN_100 = /** @type {const} */ ([
@@ -125,6 +125,22 @@
       oneIn: 6322,
       oneInLabel: "1 / 6.322",
       cutsceneKind: "ufo",
+    },
+    {
+      id: "saat_yonu",
+      name: "Saatyönü",
+      color: "#29b6f6",
+      oneIn: 11987,
+      oneInLabel: "1 / 11.987",
+      cutsceneKind: "saatyonu",
+    },
+    {
+      id: "bilgesayarkorsani",
+      name: "Bilgesayarkorsanı",
+      color: "#00e676",
+      oneIn: 19476,
+      oneInLabel: "1 / 19.476",
+      cutsceneKind: "bilge",
     },
   ]);
 
@@ -207,6 +223,17 @@
   const elTestCancel = document.getElementById("test-cancel");
   const elCutsceneSseri = document.getElementById("cutscene-sseri");
   const elCutsceneUfo = document.getElementById("cutscene-ufo");
+  const elCutsceneSaatyonu = document.getElementById("cutscene-saatyonu");
+  const elCutsceneBilge = document.getElementById("cutscene-bilge");
+
+  /** Sol yelkovan + gri donma (~4,5 sn), ardından JI Fajita isim kartı. */
+  const SAATYONU_CUTSCENE_MS = 4500;
+  const SAATYONU_NAME_HOLD_MS = 3600;
+  const SAATYONU_NAME_FADE_MS = 1000;
+  /** İkili yağmur + beyaz çatlak (~8,8 sn), ardından Anna + 0101 kartı. */
+  const BILGE_CUTSCENE_MS = 8800;
+  const BILGE_NAME_HOLD_MS = 3800;
+  const BILGE_NAME_FADE_MS = 1000;
 
   /** Işık + revolver + patlama (~5,5 sn), ardından isim kartı 6 sn. */
   const SSERI_CUTSCENE_MS = 5500;
@@ -232,6 +259,8 @@
   function getCutsceneKind(/** @type {AuraDef} */ aura) {
     if (aura.cutsceneKind === "sseri") return "sseri";
     if (aura.cutsceneKind === "ufo") return "ufo";
+    if (aura.cutsceneKind === "saatyonu") return "saatyonu";
+    if (aura.cutsceneKind === "bilge") return "bilge";
     if (aura.cutsceneTier === 2) return "star";
     if (aura.cutsceneTier === 1) return "nova";
     if (aura.oneIn >= LEGENDARY_MIN_ONE_IN) return "star";
@@ -695,15 +724,33 @@
     const f = reduced ? Math.min(fadeMs, 450) : fadeMs;
     const steamer = Boolean(opts && opts.steamer);
     const shake = Boolean(opts && opts.shake);
-    elLegendRevealName.classList.remove("font-steamer", "legend-reveal__name--shake");
+    const shakeHard = Boolean(opts && opts.shakeHard);
+    const fontFajita = Boolean(opts && opts.fontFajita);
+    const fontAnna = Boolean(opts && opts.fontAnna);
+    const fontAnnaEyebrow = Boolean(opts && opts.fontAnnaEyebrow);
+    const grayReveal = Boolean(opts && opts.grayReveal);
+    elLegendReveal.classList.remove("legend-reveal--gray");
+    elLegendRevealEyebrow.classList.remove("font-anna");
+    elLegendRevealName.classList.remove(
+      "font-steamer",
+      "legend-reveal__name--shake",
+      "legend-reveal__name--shake-hard",
+      "font-fajita",
+      "font-anna",
+    );
 
     elLegendRevealEyebrow.textContent = eyebrow;
     elLegendRevealName.textContent = rolled.name;
     elLegendRevealOdds.textContent = rolled.oneInLabel;
     elLegendReveal.style.setProperty("--lr-color", rolled.color);
     elLegendReveal.style.transitionDuration = reduced ? "0.38s" : "";
+    elLegendReveal.classList.toggle("legend-reveal--gray", grayReveal);
+    elLegendRevealEyebrow.classList.toggle("font-anna", fontAnnaEyebrow);
     elLegendRevealName.classList.toggle("font-steamer", steamer);
-    elLegendRevealName.classList.toggle("legend-reveal__name--shake", shake);
+    elLegendRevealName.classList.toggle("font-fajita", fontFajita);
+    elLegendRevealName.classList.toggle("font-anna", fontAnna && !fontFajita);
+    elLegendRevealName.classList.toggle("legend-reveal__name--shake", shake && !shakeHard);
+    elLegendRevealName.classList.toggle("legend-reveal__name--shake-hard", shakeHard);
     elLegendReveal.classList.remove("legend-reveal--hidden", "legend-reveal--fade");
     elLegendReveal.setAttribute("aria-hidden", "false");
     void elLegendReveal.offsetWidth;
@@ -712,9 +759,16 @@
       elLegendReveal.classList.add("legend-reveal--fade");
       legendRevealTimer2 = window.setTimeout(() => {
         elLegendReveal.classList.add("legend-reveal--hidden");
-        elLegendReveal.classList.remove("legend-reveal--fade");
+        elLegendReveal.classList.remove("legend-reveal--fade", "legend-reveal--gray");
         elLegendReveal.setAttribute("aria-hidden", "true");
-        elLegendRevealName.classList.remove("font-steamer", "legend-reveal__name--shake");
+        elLegendRevealEyebrow.classList.remove("font-anna");
+        elLegendRevealName.classList.remove(
+          "font-steamer",
+          "legend-reveal__name--shake",
+          "legend-reveal__name--shake-hard",
+          "font-fajita",
+          "font-anna",
+        );
         finishLegendarySequence();
       }, f);
     }, h);
@@ -737,6 +791,66 @@
 
   function startUfoRevealAfterCutscene(rolled) {
     startRevealOverlay(rolled, "Özel aura", UFO_NAME_HOLD_MS, UFO_NAME_FADE_MS, { steamer: true });
+  }
+
+  function startSaatyonuRevealAfterCutscene(rolled) {
+    startRevealOverlay(rolled, "Özel aura", SAATYONU_NAME_HOLD_MS, SAATYONU_NAME_FADE_MS, {
+      fontFajita: true,
+      shakeHard: true,
+      grayReveal: true,
+    });
+  }
+
+  function startBilgeRevealAfterCutscene(rolled) {
+    startRevealOverlay(rolled, "0101", BILGE_NAME_HOLD_MS, BILGE_NAME_FADE_MS, {
+      fontAnna: true,
+      fontAnnaEyebrow: true,
+      shakeHard: true,
+    });
+  }
+
+  function runSaatyonuCutscene(rolled, onDone) {
+    if (!elCutsceneSaatyonu) {
+      onDone();
+      return;
+    }
+    clearAutoTimer();
+    elCutsceneSaatyonu.style.setProperty("--saat-glow", rolled.color);
+    elCutsceneSaatyonu.classList.remove("cutscene-saat--hidden", "cutscene-saat--run", "cutscene-saat--fast");
+    void elCutsceneSaatyonu.offsetWidth;
+    elCutsceneSaatyonu.classList.add("cutscene-saat--run");
+    elCutsceneSaatyonu.setAttribute("aria-hidden", "false");
+    if (prefersReducedMotion()) elCutsceneSaatyonu.classList.add("cutscene-saat--fast");
+
+    const ms = prefersReducedMotion() ? 900 : SAATYONU_CUTSCENE_MS;
+    window.setTimeout(() => {
+      elCutsceneSaatyonu.classList.remove("cutscene-saat--run", "cutscene-saat--fast");
+      elCutsceneSaatyonu.classList.add("cutscene-saat--hidden");
+      elCutsceneSaatyonu.setAttribute("aria-hidden", "true");
+      onDone();
+    }, ms);
+  }
+
+  function runBilgeCutscene(rolled, onDone) {
+    if (!elCutsceneBilge) {
+      onDone();
+      return;
+    }
+    clearAutoTimer();
+    elCutsceneBilge.style.setProperty("--bilge-accent", rolled.color);
+    elCutsceneBilge.classList.remove("cutscene-bilge--hidden", "cutscene-bilge--run", "cutscene-bilge--fast");
+    void elCutsceneBilge.offsetWidth;
+    elCutsceneBilge.classList.add("cutscene-bilge--run");
+    elCutsceneBilge.setAttribute("aria-hidden", "false");
+    if (prefersReducedMotion()) elCutsceneBilge.classList.add("cutscene-bilge--fast");
+
+    const ms = prefersReducedMotion() ? 950 : BILGE_CUTSCENE_MS;
+    window.setTimeout(() => {
+      elCutsceneBilge.classList.remove("cutscene-bilge--run", "cutscene-bilge--fast");
+      elCutsceneBilge.classList.add("cutscene-bilge--hidden");
+      elCutsceneBilge.setAttribute("aria-hidden", "true");
+      onDone();
+    }, ms);
   }
 
   function runNovaCutscene(rolled, onDone) {
@@ -899,6 +1013,20 @@
       setOrbsSolidColor(rolled.color);
       runUfoCutscene(rolled, () => {
         startUfoRevealAfterCutscene(rolled);
+      });
+      return;
+    }
+    if (kind === "saatyonu") {
+      setOrbsSolidColor(rolled.color);
+      runSaatyonuCutscene(rolled, () => {
+        startSaatyonuRevealAfterCutscene(rolled);
+      });
+      return;
+    }
+    if (kind === "bilge") {
+      setOrbsSolidColor(rolled.color);
+      runBilgeCutscene(rolled, () => {
+        startBilgeRevealAfterCutscene(rolled);
       });
       return;
     }
