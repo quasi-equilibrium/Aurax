@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Aura</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="splash" class="splash" aria-hidden="false">
+      <div class="splash__inner">
+        <div class="fortune-cookie" role="img" aria-label="Kader kurabiyesi">
+          <div class="fortune-cookie__body"></div>
+          <div class="fortune-cookie__crack"></div>
+        </div>
+        <p class="splash__hint">Yükleniyor…</p>
+      </div>
+    </div>
+
+    <div id="app" class="app app--hidden" aria-hidden="true">
+      <div class="app-slider" id="app-slider">
+        <section class="app-panel app-panel--craft" id="panel-craft" aria-label="Craft">
+          <div class="craft-head">
+            <button type="button" class="btn btn--panel-back" id="btn-from-craft" aria-label="Oyuna dön">
+              Oyun →
+            </button>
+            <h2 class="craft-title">Craft</h2>
+            <p class="craft-sub">
+              Malzeme: <strong>1 / 200</strong>’den daha yaygın auralar (Gündelik, 1/100 bandı, Lolipop).
+            </p>
+          </div>
+          <ul class="craft-list" id="craft-list"></ul>
+        </section>
+
+        <section class="app-panel app-panel--game">
+          <button
+            type="button"
+            class="craft-open"
+            id="btn-to-craft"
+            aria-label="Craft ekranına git"
+          >
+            ◀
+          </button>
+
+          <div class="app-panel__inner">
+            <header class="app__header">
+              <h1 class="app__title">Aura</h1>
+            </header>
+
+            <div class="app__body">
+              <aside class="inventory" aria-label="Envanter">
+                <h2 class="inventory__title">Envanter</h2>
+                <ul id="inventory-list" class="inventory__list"></ul>
+                <p id="inventory-empty" class="inventory__empty">Henüz aura yok. Çevir!</p>
+              </aside>
+
+              <main class="main">
+                <div class="equipped-bar" id="equipped-bar">
+                  <span class="equipped-bar__label">Takılı:</span>
+                  <span class="equipped-bar__name" id="equipped-name">—</span>
+                </div>
+
+                <div id="aura-stage" class="aura-stage" aria-live="polite">
+                  <div class="aura-orbit" id="aura-orbit" aria-hidden="true"></div>
+                  <div class="aura-stage__shimmer" id="aura-shimmer" aria-hidden="true"></div>
+                  <div class="aura-stage__content">
+                    <p class="aura-stage__eyebrow" id="aura-eyebrow"></p>
+                    <p class="aura-stage__name" id="aura-display-name">Çevirmeye hazır</p>
+                    <p class="aura-stage__odds" id="aura-display-odds"></p>
+                  </div>
+                </div>
+
+                <p class="luck-readout" id="luck-readout" aria-live="polite">Şans birikimi: +0</p>
+
+                <div class="actions actions--spin-row">
+                  <button type="button" class="btn btn--quick" id="btn-quick">Hızlı çevir</button>
+                  <button type="button" class="btn btn--spin btn--spin-grow" id="btn-spin">Çevir</button>
+                </div>
+                <div class="actions">
+                  <button type="button" class="btn btn--auto btn--auto-off" id="btn-auto" aria-pressed="false">
+                    Otomatik Çevir: KAPALI
+                  </button>
+                </div>
+              </main>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <div
+      id="cutscene"
+      class="cutscene cutscene--hidden"
+      aria-hidden="true"
+      role="presentation"
+      style="--cs-color: #9ad8ff"
+    >
+      <div class="cutscene__veil"></div>
+      <div class="cutscene__halo" aria-hidden="true"></div>
+      <div class="cutscene__star-stage">
+        <div class="cutscene__star-spin">
+          <div class="cutscene__star-rotate" aria-hidden="true">
+          <svg
+            class="cutscene__star-svg"
+            viewBox="-100 -100 200 200"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+          >
+            <defs>
+              <radialGradient id="cutscene-star-grad" cx="32%" cy="30%" r="72%">
+                <stop offset="0%" stop-color="#ffffff" stop-opacity="1" />
+                <stop offset="28%" stop-color="#ffffff" stop-opacity="0.95" />
+                <stop id="cutscene-stop-mid" offset="55%" stop-opacity="1" />
+                <stop id="cutscene-stop-edge" offset="100%" stop-opacity="0.22" />
+              </radialGradient>
+              <filter id="cutscene-star-soft" x="-80%" y="-80%" width="260%" height="260%">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="b" />
+                <feMerge>
+                  <feMergeNode in="b" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+            <path
+              class="cutscene__star-path"
+              fill="url(#cutscene-star-grad)"
+              filter="url(#cutscene-star-soft)"
+              d="M 0,-92 L 26.87,-26.87 L 92,0 L 26.87,26.87 L 0,92 L -26.87,26.87 L -92,0 L -26.87,-26.87 Z"
+            />
+          </svg>
+          </div>
+        </div>
+      </div>
+      <div class="cutscene__flash" aria-hidden="true"></div>
+    </div>
+
+    <div
+      id="legend-reveal"
+      class="legend-reveal legend-reveal--hidden"
+      aria-hidden="true"
+      role="presentation"
+    >
+      <p class="legend-reveal__eyebrow">Efsanevi aura</p>
+      <p class="legend-reveal__name" id="legend-reveal-name"></p>
+      <p class="legend-reveal__odds" id="legend-reveal-odds"></p>
+    </div>
+
+    <div id="quick-modal" class="modal modal--hidden" aria-hidden="true">
+      <div class="modal__backdrop" id="quick-backdrop" tabindex="-1"></div>
+      <div
+        class="modal__panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="quick-modal-title"
+      >
+        <h2 class="modal__title" id="quick-modal-title">Hızlı çevir</h2>
+        <p class="modal__text">Hızlı spin için kodu gir</p>
+        <input
+          id="quick-code"
+          class="modal__input"
+          type="password"
+          inputmode="numeric"
+          autocomplete="off"
+          maxlength="32"
+          placeholder="Kod"
+        />
+        <p id="quick-error" class="modal__error modal__error--hidden" role="alert"></p>
+        <div class="modal__actions">
+          <button type="button" class="btn btn--modal-secondary" id="quick-cancel">İptal</button>
+          <button type="button" class="btn btn--modal-primary" id="quick-submit">Tamam</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
