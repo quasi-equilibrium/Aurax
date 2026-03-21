@@ -183,12 +183,22 @@
   let uiTickId = 0;
   let legendRevealTimer1 = 0;
   let legendRevealTimer2 = 0;
+  /** Galeri cutscene önizlemesi (çevirme değil). */
+  let isCutscenePreview = false;
 
   const elSplash = document.getElementById("splash");
   const elApp = document.getElementById("app");
   const elAppSlider = document.getElementById("app-slider");
   const elBtnToCraft = document.getElementById("btn-to-craft");
   const elBtnFromCraft = document.getElementById("btn-from-craft");
+  const elBtnToAurass = document.getElementById("btn-to-aurass");
+  const elBtnFromAurass = document.getElementById("btn-from-aurass");
+  const elAurassList = document.getElementById("aurass-list");
+  const elAurassLockModal = document.getElementById("aurass-lock-modal");
+  const elAurassLockBackdrop = document.getElementById("aurass-lock-backdrop");
+  const elAurassLockName = document.getElementById("aurass-lock-name");
+  const elAurassLockWatch = document.getElementById("aurass-lock-watch");
+  const elAurassLockClose = document.getElementById("aurass-lock-close");
   const elCraftList = document.getElementById("craft-list");
   const elInventoryList = document.getElementById("inventory-list");
   const elInventoryEmpty = document.getElementById("inventory-empty");
@@ -265,6 +275,10 @@
     if (aura.cutsceneTier === 1) return "nova";
     if (aura.oneIn >= LEGENDARY_MIN_ONE_IN) return "star";
     return "none";
+  }
+
+  function auraHasCutscene(/** @type {AuraDef} */ aura) {
+    return getCutsceneKind(aura) !== "none";
   }
 
   /** Eski kod uyumu: sadece yıldız / 5000+ sunumu. */
@@ -647,12 +661,186 @@
   }
 
   function openCraftView() {
-    if (elAppSlider) elAppSlider.classList.add("app-slider--craft");
+    if (elAppSlider) {
+      elAppSlider.classList.remove("app-slider--aurass");
+      elAppSlider.classList.add("app-slider--craft");
+    }
     renderCraftPanel();
   }
 
   function closeCraftView() {
     if (elAppSlider) elAppSlider.classList.remove("app-slider--craft");
+  }
+
+  function openAuraSsView() {
+    if (elAppSlider) {
+      elAppSlider.classList.remove("app-slider--craft");
+      elAppSlider.classList.add("app-slider--aurass");
+    }
+    renderAurassPanel();
+  }
+
+  function closeAuraSsView() {
+    if (elAppSlider) elAppSlider.classList.remove("app-slider--aurass");
+  }
+
+  function listAurasForAurassSorted() {
+    return [...ALL_AURAS].sort((a, b) => {
+      if (a.oneIn !== b.oneIn) return a.oneIn - b.oneIn;
+      return a.name.localeCompare(b.name, "tr");
+    });
+  }
+
+  function renderAurassPanel() {
+    if (!elAurassList) return;
+    elAurassList.innerHTML = "";
+    const lockSvg =
+      '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill="currentColor" d="M12 1a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V11a2 2 0 0 0-2-2h-1V6a5 5 0 0 0-5-5zm-3 8V6a3 3 0 0 1 6 0v3H9z"/></svg>';
+
+    for (const a of listAurasForAurassSorted()) {
+      const owned = (state.counts[a.id] || 0) > 0;
+      const li = document.createElement("li");
+      li.className = owned ? "aurass-item aurass-item--owned" : "aurass-item aurass-item--locked";
+
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "aurass-item__btn";
+
+      const name = document.createElement("span");
+      name.className = "aurass-item__name";
+      name.textContent = a.name;
+      name.style.setProperty("--aurass-item-color", a.color);
+      name.style.color = owned ? a.color : "";
+
+      const odds = document.createElement("span");
+      odds.className = "aurass-item__odds";
+      odds.textContent = a.oneInLabel;
+
+      btn.appendChild(name);
+      btn.appendChild(odds);
+
+      if (!owned) {
+        const lock = document.createElement("span");
+        lock.className = "aurass-item__lock";
+        lock.innerHTML = lockSvg;
+        btn.appendChild(lock);
+        btn.addEventListener("click", () => openAurassLockModal(a));
+      }
+
+      li.appendChild(btn);
+      elAurassList.appendChild(li);
+    }
+  }
+
+  /** @type {AuraDef | null} */
+  let aurassLockTarget = null;
+
+  function openAurassLockModal(/** @type {AuraDef} */ aura) {
+    aurassLockTarget = aura;
+    if (!elAurassLockModal || !elAurassLockName || !elAurassLockWatch) return;
+    elAurassLockName.textContent = aura.name;
+    const has = auraHasCutscene(aura);
+    elAurassLockWatch.classList.toggle("btn--aurass-watch--hidden", !has);
+    elAurassLockModal.classList.remove("modal--hidden");
+    elAurassLockModal.setAttribute("aria-hidden", "false");
+  }
+
+  function closeAurassLockModal() {
+    aurassLockTarget = null;
+    if (!elAurassLockModal) return;
+    elAurassLockModal.classList.add("modal--hidden");
+    elAurassLockModal.setAttribute("aria-hidden", "true");
+  }
+
+  /** @returns {boolean} */
+  function beginCutscenePreview() {
+    if (isSpinning) return false;
+    isCutscenePreview = true;
+    isSpinning = true;
+    clearAutoTimer();
+    elBtnSpin.disabled = true;
+    if (elBtnQuick) elBtnQuick.disabled = true;
+    if (elBtnTest) elBtnTest.disabled = true;
+    if (elBtnToCraft) elBtnToCraft.disabled = true;
+    if (elBtnToAurass) elBtnToAurass.disabled = true;
+    return true;
+  }
+
+  function endCutscenePreview() {
+    if (!isCutscenePreview) return;
+    clearLegendRevealTimers();
+    isCutscenePreview = false;
+    isSpinning = false;
+    elBtnSpin.disabled = false;
+    if (elBtnQuick) elBtnQuick.disabled = false;
+    if (elBtnTest) elBtnTest.disabled = false;
+    if (elBtnToCraft) elBtnToCraft.disabled = false;
+    if (elBtnToAurass) elBtnToAurass.disabled = false;
+    elAuraStage.classList.remove("aura-stage--spinning");
+    renderAuraStage();
+    renderInventory();
+    if (state.autoRoll) scheduleAutoSpin();
+  }
+
+  function runPreviewCutsceneForAura(/** @type {AuraDef} */ aura) {
+    if (!auraHasCutscene(aura)) return;
+    closeAurassLockModal();
+    if (!beginCutscenePreview()) return;
+    setOrbsSolidColor(aura.color);
+    const kind = getCutsceneKind(aura);
+    const pm = /** @type {const} */ ({ previewMode: true });
+
+    if (kind === "sseri") {
+      runSseriCutscene(aura, () => {
+        startRevealOverlay(aura, "Özel aura", SSERI_NAME_HOLD_MS, SSERI_NAME_FADE_MS, {
+          steamer: true,
+          shake: true,
+          ...pm,
+        });
+      });
+      return;
+    }
+    if (kind === "ufo") {
+      runUfoCutscene(aura, () => {
+        startRevealOverlay(aura, "Özel aura", UFO_NAME_HOLD_MS, UFO_NAME_FADE_MS, { steamer: true, ...pm });
+      });
+      return;
+    }
+    if (kind === "saatyonu") {
+      runSaatyonuCutscene(aura, () => {
+        startRevealOverlay(aura, "Özel aura", SAATYONU_NAME_HOLD_MS, SAATYONU_NAME_FADE_MS, {
+          fontFajita: true,
+          shakeHard: true,
+          grayReveal: true,
+          ...pm,
+        });
+      });
+      return;
+    }
+    if (kind === "bilge") {
+      runBilgeCutscene(aura, () => {
+        startRevealOverlay(aura, "0101", BILGE_NAME_HOLD_MS, BILGE_NAME_FADE_MS, {
+          fontAnna: true,
+          fontAnnaEyebrow: true,
+          shakeHard: true,
+          ...pm,
+        });
+      });
+      return;
+    }
+    if (kind === "star") {
+      runLegendaryCutscene(aura, () => {
+        startRevealOverlay(aura, "Efsanevi aura", LEGEND_REVEAL_HOLD_MS, LEGEND_REVEAL_FADE_MS, pm);
+      });
+      return;
+    }
+    if (kind === "nova") {
+      runNovaCutscene(aura, () => {
+        startRevealOverlay(aura, "Nadir patlama", MID_REVEAL_HOLD_MS, MID_REVEAL_FADE_MS, pm);
+      });
+      return;
+    }
+    endCutscenePreview();
   }
 
   function clearAutoTimer() {
@@ -706,6 +894,7 @@
     if (elBtnQuick) elBtnQuick.disabled = false;
     if (elBtnTest) elBtnTest.disabled = false;
     if (elBtnToCraft) elBtnToCraft.disabled = false;
+    if (elBtnToAurass) elBtnToAurass.disabled = false;
     elAuraStage.classList.remove("aura-stage--spinning");
     renderAuraStage();
     renderInventory();
@@ -715,7 +904,8 @@
   function startRevealOverlay(rolled, eyebrow, holdMs, fadeMs, opts) {
     clearLegendRevealTimers();
     if (!elLegendReveal || !elLegendRevealEyebrow || !elLegendRevealName || !elLegendRevealOdds) {
-      finishLegendarySequence();
+      if (opts && opts.previewMode) endCutscenePreview();
+      else finishLegendarySequence();
       return;
     }
 
@@ -729,6 +919,7 @@
     const fontAnna = Boolean(opts && opts.fontAnna);
     const fontAnnaEyebrow = Boolean(opts && opts.fontAnnaEyebrow);
     const grayReveal = Boolean(opts && opts.grayReveal);
+    const previewMode = Boolean(opts && opts.previewMode);
     elLegendReveal.classList.remove("legend-reveal--gray");
     elLegendRevealEyebrow.classList.remove("font-anna");
     elLegendRevealName.classList.remove(
@@ -769,7 +960,8 @@
           "font-fajita",
           "font-anna",
         );
-        finishLegendarySequence();
+        if (previewMode) endCutscenePreview();
+        else finishLegendarySequence();
       }, f);
     }, h);
   }
@@ -961,6 +1153,7 @@
     if (elBtnQuick) elBtnQuick.disabled = true;
     if (elBtnTest) elBtnTest.disabled = true;
     if (elBtnToCraft) elBtnToCraft.disabled = true;
+    if (elBtnToAurass) elBtnToAurass.disabled = true;
     elAuraStage.classList.add("aura-stage--spinning");
     elAuraEyebrow.textContent = "Çevriliyor";
     elAuraName.textContent = "…";
@@ -1050,6 +1243,7 @@
     if (elBtnQuick) elBtnQuick.disabled = false;
     if (elBtnTest) elBtnTest.disabled = false;
     if (elBtnToCraft) elBtnToCraft.disabled = false;
+    if (elBtnToAurass) elBtnToAurass.disabled = false;
     elAuraStage.classList.remove("aura-stage--spinning");
     renderAuraStage();
     renderInventory();
@@ -1182,6 +1376,7 @@
       li.appendChild(btn);
       elInventoryList.appendChild(li);
     }
+    renderAurassPanel();
   }
 
   function renderAutoButton() {
@@ -1283,6 +1478,17 @@
     }
     if (elBtnToCraft) elBtnToCraft.addEventListener("click", () => openCraftView());
     if (elBtnFromCraft) elBtnFromCraft.addEventListener("click", () => closeCraftView());
+    if (elBtnToAurass) elBtnToAurass.addEventListener("click", () => !isSpinning && openAuraSsView());
+    if (elBtnFromAurass) elBtnFromAurass.addEventListener("click", () => closeAuraSsView());
+    if (elAurassLockBackdrop) elAurassLockBackdrop.addEventListener("click", () => closeAurassLockModal());
+    if (elAurassLockClose) elAurassLockClose.addEventListener("click", () => closeAurassLockModal());
+    if (elAurassLockWatch) {
+      elAurassLockWatch.addEventListener("click", () => {
+        if (aurassLockTarget && auraHasCutscene(aurassLockTarget)) {
+          runPreviewCutsceneForAura(aurassLockTarget);
+        }
+      });
+    }
     if (elQuickBackdrop) elQuickBackdrop.addEventListener("click", () => closeQuickModal());
     if (elQuickCancel) elQuickCancel.addEventListener("click", () => closeQuickModal());
     if (elQuickSubmit) elQuickSubmit.addEventListener("click", () => submitQuickCode());
@@ -1309,6 +1515,9 @@
       renderLuckReadout();
       if (elAppSlider && elAppSlider.classList.contains("app-slider--craft")) {
         renderCraftPanel();
+      }
+      if (elAppSlider && elAppSlider.classList.contains("app-slider--aurass")) {
+        renderAurassPanel();
       }
     }, 1000);
   }
