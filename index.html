@@ -4,6 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Aura</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Lobster&family=Gentium+Plus:ital,wght@1,700&display=swap"
+      rel="stylesheet"
+    />
     <link rel="preconnect" href="https://fonts.cdnfonts.com" />
     <link href="https://fonts.cdnfonts.com/css/steamer" rel="stylesheet" />
     <link href="https://fonts.cdnfonts.com/css/ji-fajita" rel="stylesheet" />
@@ -105,7 +111,7 @@
               ← Oyun
             </button>
             <h2 class="aurass-title">AuraSs</h2>
-            <p class="aurass-sub">Nadirlik: yukarı yaygın, aşağı nadir. Kilitli satırlarda cutscene önizlemesi.</p>
+            <p class="aurass-sub">Nadirlik: yukarı yaygın, aşağı nadir. Cutscene’i olanlarda satıra dokun: açılmış veya kilitli fark etmez.</p>
           </div>
           <div class="aurass-scroll">
             <ul class="aurass-list" id="aurass-list"></ul>
@@ -294,6 +300,64 @@
     </div>
 
     <div
+      id="cutscene-flashbank"
+      class="cutscene-flashbank cutscene-flashbank--hidden"
+      aria-hidden="true"
+      role="presentation"
+      style="--fb-blue: #1e88e5"
+    >
+      <div class="cutscene-flashbank__veil"></div>
+      <div class="cutscene-flashbank__stage">
+        <div class="cutscene-flashbank__hex-wrap" aria-hidden="true">
+          <svg class="cutscene-flashbank__hex" viewBox="-120 -120 240 240" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <filter id="fb-glow" x="-100%" y="-100%" width="300%" height="300%">
+                <feGaussianBlur stdDeviation="8" result="b" />
+                <feMerge>
+                  <feMergeNode in="b" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+            <polygon
+              class="cutscene-flashbank__hex-shape"
+              points="-90,-52 -90,52 0,104 90,52 90,-52 0,-104"
+              fill="none"
+              stroke="var(--fb-blue)"
+              stroke-width="10"
+              filter="url(#fb-glow)"
+            />
+          </svg>
+        </div>
+      </div>
+      <div class="cutscene-flashbank__flash" aria-hidden="true"></div>
+    </div>
+
+    <div
+      id="cutscene-flat"
+      class="cutscene-flat cutscene-flat--hidden"
+      aria-hidden="true"
+      role="presentation"
+    >
+      <div class="cutscene-flat__veil"></div>
+      <div class="cutscene-flat__stage">
+        <div class="cutscene-flat__pen" aria-hidden="true">
+          <svg viewBox="0 0 40 120" xmlns="http://www.w3.org/2000/svg" class="cutscene-flat__pen-svg">
+            <path
+              d="M20 4 L32 18 L26 22 L20 16 L14 22 L8 18 Z"
+              fill="#5d4037"
+              stroke="#3e2723"
+              stroke-width="1"
+            />
+            <rect x="17" y="20" width="6" height="88" rx="2" fill="#6d4c41" stroke="#3e2723" stroke-width="1" />
+            <path d="M14 108 L26 108 L23 118 L17 118 Z" fill="#212121" />
+          </svg>
+        </div>
+      </div>
+      <div class="cutscene-flat__burst" aria-hidden="true"></div>
+    </div>
+
+    <div
       id="legend-reveal"
       class="legend-reveal legend-reveal--hidden"
       aria-hidden="true"
@@ -333,27 +397,60 @@
 
     <div id="aurass-lock-modal" class="modal modal--hidden" aria-hidden="true">
       <div class="modal__backdrop" id="aurass-lock-backdrop" tabindex="-1"></div>
-      <div
-        class="modal__panel modal__panel--aurass-lock"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="aurass-lock-title"
-      >
-        <div class="aurass-lock-modal__lock" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="96" height="96" xmlns="http://www.w3.org/2000/svg">
-            <path
-              fill="currentColor"
-              d="M12 1a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V11a2 2 0 0 0-2-2h-1V6a5 5 0 0 0-5-5zm-3 8V6a3 3 0 0 1 6 0v3H9z"
-            />
-          </svg>
-        </div>
-        <h2 class="aurass-lock-modal__title" id="aurass-lock-title">Kilitli</h2>
-        <p class="aurass-lock-modal__name" id="aurass-lock-name"></p>
-        <div class="modal__actions modal__actions--stack">
-          <button type="button" class="btn btn--modal-primary" id="aurass-lock-watch">
-            Cutscene'yi izle
+      <div class="modal__panel-wrap modal__panel-wrap--aurass" role="presentation">
+        <aside id="aurass-global-drawer" class="aurass-global-drawer" aria-hidden="true">
+          <div class="aurass-global-drawer__inner">
+            <h3 class="aurass-global-drawer__title">Global auraX</h3>
+            <ol class="aurass-global-rows">
+              <li class="aurass-global-rows__row aurass-global-rows__row--1"><span class="aurass-global-rows__num">1</span><span class="aurass-global-rows__slot"></span></li>
+              <li class="aurass-global-rows__row aurass-global-rows__row--2"><span class="aurass-global-rows__num">2</span><span class="aurass-global-rows__slot"></span></li>
+              <li class="aurass-global-rows__row aurass-global-rows__row--3"><span class="aurass-global-rows__num">3</span><span class="aurass-global-rows__slot"></span></li>
+              <li class="aurass-global-rows__row"><span class="aurass-global-rows__num">4</span><span class="aurass-global-rows__slot"></span></li>
+              <li class="aurass-global-rows__row"><span class="aurass-global-rows__num">5</span><span class="aurass-global-rows__slot"></span></li>
+              <li class="aurass-global-rows__row"><span class="aurass-global-rows__num">6</span><span class="aurass-global-rows__slot"></span></li>
+              <li class="aurass-global-rows__row"><span class="aurass-global-rows__num">7</span><span class="aurass-global-rows__slot"></span></li>
+              <li class="aurass-global-rows__row"><span class="aurass-global-rows__num">8</span><span class="aurass-global-rows__slot"></span></li>
+              <li class="aurass-global-rows__row"><span class="aurass-global-rows__num">9</span><span class="aurass-global-rows__slot"></span></li>
+              <li class="aurass-global-rows__row"><span class="aurass-global-rows__num">10</span><span class="aurass-global-rows__slot"></span></li>
+            </ol>
+          </div>
+        </aside>
+        <div
+          class="modal__panel modal__panel--aurass-lock"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="aurass-lock-title"
+        >
+          <button
+            type="button"
+            class="aurass-global-toggle"
+            id="aurass-global-toggle"
+            aria-label="Global aura paneli"
+            aria-expanded="false"
+            aria-controls="aurass-global-drawer"
+          >
+            ◀
           </button>
-          <button type="button" class="btn btn--modal-secondary" id="aurass-lock-close">Kapat</button>
+          <div class="aurass-lock-modal__body">
+            <div class="aurass-lock-modal__lock-wrap" id="aurass-lock-lock-wrap" aria-hidden="true">
+              <div class="aurass-lock-modal__lock">
+                <svg viewBox="0 0 24 24" width="96" height="96" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    fill="currentColor"
+                    d="M12 1a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V11a2 2 0 0 0-2-2h-1V6a5 5 0 0 0-5-5zm-3 8V6a3 3 0 0 1 6 0v3H9z"
+                  />
+                </svg>
+              </div>
+            </div>
+            <h2 class="aurass-lock-modal__title" id="aurass-lock-title">Kilitli</h2>
+            <p class="aurass-lock-modal__name" id="aurass-lock-name"></p>
+            <div class="modal__actions modal__actions--stack">
+              <button type="button" class="btn btn--modal-primary" id="aurass-lock-watch">
+                Cutscene'yi izle
+              </button>
+              <button type="button" class="btn btn--modal-secondary" id="aurass-lock-close">Kapat</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

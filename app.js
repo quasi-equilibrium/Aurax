@@ -78,7 +78,7 @@
   /**
    * cutsceneTier: 1 = nova, 2 = yıldız (veya oneIn ≥ 5000).
    * cutsceneKind: özel sahneler (Steamer / saat / bilge yazı).
-   * @typedef {{ id: string; name: string; color: string; oneIn: number; oneInLabel: string; weightDenom?: number; cutsceneTier?: 1 | 2; cutsceneKind?: 'sseri' | 'ufo' | 'saatyonu' | 'bilge' }} AuraDef
+   * @typedef {{ id: string; name: string; color: string; oneIn: number; oneInLabel: string; weightDenom?: number; cutsceneTier?: 1 | 2; cutsceneKind?: 'sseri' | 'ufo' | 'saatyonu' | 'bilge' | 'flashbank' | 'flat' }} AuraDef
    */
 
   const AURAS_1_IN_100 = /** @type {const} */ ([
@@ -142,6 +142,22 @@
       oneInLabel: "1 / 19.476",
       cutsceneKind: "bilge",
     },
+    {
+      id: "flashbank",
+      name: "Flashbank",
+      color: "#1e88e5",
+      oneIn: 21126,
+      oneInLabel: "1 / 21.126",
+      cutsceneKind: "flashbank",
+    },
+    {
+      id: "flat",
+      name: "Flat",
+      color: "#ff9800",
+      oneIn: 23767,
+      oneInLabel: "1 / 23.767",
+      cutsceneKind: "flat",
+    },
   ]);
 
   const AURAS_100_FULL = AURAS_1_IN_100.map((a) => ({
@@ -199,6 +215,10 @@
   const elAurassLockName = document.getElementById("aurass-lock-name");
   const elAurassLockWatch = document.getElementById("aurass-lock-watch");
   const elAurassLockClose = document.getElementById("aurass-lock-close");
+  const elAurassLockTitle = document.getElementById("aurass-lock-title");
+  const elAurassLockLockWrap = document.getElementById("aurass-lock-lock-wrap");
+  const elAurassGlobalDrawer = document.getElementById("aurass-global-drawer");
+  const elAurassGlobalToggle = document.getElementById("aurass-global-toggle");
   const elCraftList = document.getElementById("craft-list");
   const elInventoryList = document.getElementById("inventory-list");
   const elInventoryEmpty = document.getElementById("inventory-empty");
@@ -235,6 +255,17 @@
   const elCutsceneUfo = document.getElementById("cutscene-ufo");
   const elCutsceneSaatyonu = document.getElementById("cutscene-saatyonu");
   const elCutsceneBilge = document.getElementById("cutscene-bilge");
+  const elCutsceneFlashbank = document.getElementById("cutscene-flashbank");
+  const elCutsceneFlat = document.getElementById("cutscene-flat");
+
+  /** Altıgen mavi ışık + 0,1 sn beyaz + 3 sn bekleme; Lobster isim. */
+  const FLASHBANK_CUTSCENE_MS = 5850;
+  const FLASHBANK_NAME_HOLD_MS = 2400;
+  const FLASHBANK_NAME_FADE_MS = 900;
+  /** Kalem düşüşü + 2 sn + retro patlama; Gentium Bold Italic “Flat”. */
+  const FLAT_CUTSCENE_MS = 6400;
+  const FLAT_NAME_HOLD_MS = 2400;
+  const FLAT_NAME_FADE_MS = 900;
 
   /** Sol yelkovan + gri donma (~4,5 sn), ardından JI Fajita isim kartı. */
   const SAATYONU_CUTSCENE_MS = 4500;
@@ -271,6 +302,8 @@
     if (aura.cutsceneKind === "ufo") return "ufo";
     if (aura.cutsceneKind === "saatyonu") return "saatyonu";
     if (aura.cutsceneKind === "bilge") return "bilge";
+    if (aura.cutsceneKind === "flashbank") return "flashbank";
+    if (aura.cutsceneKind === "flat") return "flat";
     if (aura.cutsceneTier === 2) return "star";
     if (aura.cutsceneTier === 1) return "nova";
     if (aura.oneIn >= LEGENDARY_MIN_ONE_IN) return "star";
@@ -724,7 +757,9 @@
         lock.className = "aurass-item__lock";
         lock.innerHTML = lockSvg;
         btn.appendChild(lock);
-        btn.addEventListener("click", () => openAurassLockModal(a));
+        btn.addEventListener("click", () => openAurassDetailModal(a, true));
+      } else {
+        btn.addEventListener("click", () => openAurassDetailModal(a, false));
       }
 
       li.appendChild(btn);
@@ -735,21 +770,42 @@
   /** @type {AuraDef | null} */
   let aurassLockTarget = null;
 
-  function openAurassLockModal(/** @type {AuraDef} */ aura) {
+  function openAurassDetailModal(/** @type {AuraDef} */ aura, /** @type {boolean} */ locked) {
     aurassLockTarget = aura;
     if (!elAurassLockModal || !elAurassLockName || !elAurassLockWatch) return;
+    if (elAurassLockTitle) elAurassLockTitle.textContent = locked ? "Kilitli" : "Açıldı";
+    if (elAurassLockLockWrap) elAurassLockLockWrap.classList.toggle("aurass-lock-modal__lock-wrap--hidden", !locked);
     elAurassLockName.textContent = aura.name;
     const has = auraHasCutscene(aura);
     elAurassLockWatch.classList.toggle("btn--aurass-watch--hidden", !has);
+    if (elAurassGlobalDrawer) {
+      elAurassGlobalDrawer.classList.remove("aurass-global-drawer--open");
+      elAurassGlobalDrawer.setAttribute("aria-hidden", "true");
+    }
+    if (elAurassGlobalToggle) elAurassGlobalToggle.setAttribute("aria-expanded", "false");
     elAurassLockModal.classList.remove("modal--hidden");
     elAurassLockModal.setAttribute("aria-hidden", "false");
   }
 
   function closeAurassLockModal() {
     aurassLockTarget = null;
+    if (elAurassGlobalDrawer) {
+      elAurassGlobalDrawer.classList.remove("aurass-global-drawer--open");
+      elAurassGlobalDrawer.setAttribute("aria-hidden", "true");
+    }
+    if (elAurassGlobalToggle) elAurassGlobalToggle.setAttribute("aria-expanded", "false");
     if (!elAurassLockModal) return;
     elAurassLockModal.classList.add("modal--hidden");
     elAurassLockModal.setAttribute("aria-hidden", "true");
+  }
+
+  function toggleAurassGlobalDrawer() {
+    if (!elAurassGlobalDrawer || !elAurassGlobalToggle) return;
+    const open = !elAurassGlobalDrawer.classList.contains("aurass-global-drawer--open");
+    elAurassGlobalDrawer.classList.toggle("aurass-global-drawer--open", open);
+    elAurassGlobalDrawer.setAttribute("aria-hidden", open ? "false" : "true");
+    elAurassGlobalToggle.setAttribute("aria-expanded", open ? "true" : "false");
+    elAurassGlobalToggle.textContent = open ? "▶" : "◀";
   }
 
   /** @returns {boolean} */
@@ -823,6 +879,26 @@
           fontAnna: true,
           fontAnnaEyebrow: true,
           shakeHard: true,
+          ...pm,
+        });
+      });
+      return;
+    }
+    if (kind === "flashbank") {
+      runFlashbankCutscene(aura, () => {
+        startRevealOverlay(aura, "Özel aura", FLASHBANK_NAME_HOLD_MS, FLASHBANK_NAME_FADE_MS, {
+          fontLobster: true,
+          nameSnap: true,
+          ...pm,
+        });
+      });
+      return;
+    }
+    if (kind === "flat") {
+      runFlatCutscene(aura, () => {
+        startRevealOverlay(aura, "Özel aura", FLAT_NAME_HOLD_MS, FLAT_NAME_FADE_MS, {
+          fontGentium: true,
+          nameSnap: true,
           ...pm,
         });
       });
@@ -920,6 +996,9 @@
     const fontAnnaEyebrow = Boolean(opts && opts.fontAnnaEyebrow);
     const grayReveal = Boolean(opts && opts.grayReveal);
     const previewMode = Boolean(opts && opts.previewMode);
+    const fontLobster = Boolean(opts && opts.fontLobster);
+    const fontGentium = Boolean(opts && opts.fontGentium);
+    const nameSnap = Boolean(opts && opts.nameSnap);
     elLegendReveal.classList.remove("legend-reveal--gray");
     elLegendRevealEyebrow.classList.remove("font-anna");
     elLegendRevealName.classList.remove(
@@ -928,6 +1007,9 @@
       "legend-reveal__name--shake-hard",
       "font-fajita",
       "font-anna",
+      "font-lobster",
+      "font-gentium-bi",
+      "legend-reveal__name--snap-in",
     );
 
     elLegendRevealEyebrow.textContent = eyebrow;
@@ -942,6 +1024,9 @@
     elLegendRevealName.classList.toggle("font-anna", fontAnna && !fontFajita);
     elLegendRevealName.classList.toggle("legend-reveal__name--shake", shake && !shakeHard);
     elLegendRevealName.classList.toggle("legend-reveal__name--shake-hard", shakeHard);
+    elLegendRevealName.classList.toggle("font-lobster", fontLobster);
+    elLegendRevealName.classList.toggle("font-gentium-bi", fontGentium);
+    elLegendRevealName.classList.toggle("legend-reveal__name--snap-in", nameSnap);
     elLegendReveal.classList.remove("legend-reveal--hidden", "legend-reveal--fade");
     elLegendReveal.setAttribute("aria-hidden", "false");
     void elLegendReveal.offsetWidth;
@@ -959,6 +1044,9 @@
           "legend-reveal__name--shake-hard",
           "font-fajita",
           "font-anna",
+          "font-lobster",
+          "font-gentium-bi",
+          "legend-reveal__name--snap-in",
         );
         if (previewMode) endCutscenePreview();
         else finishLegendarySequence();
@@ -999,6 +1087,63 @@
       fontAnnaEyebrow: true,
       shakeHard: true,
     });
+  }
+
+  function startFlashbankRevealAfterCutscene(rolled) {
+    startRevealOverlay(rolled, "Özel aura", FLASHBANK_NAME_HOLD_MS, FLASHBANK_NAME_FADE_MS, {
+      fontLobster: true,
+      nameSnap: true,
+    });
+  }
+
+  function startFlatRevealAfterCutscene(rolled) {
+    startRevealOverlay(rolled, "Özel aura", FLAT_NAME_HOLD_MS, FLAT_NAME_FADE_MS, {
+      fontGentium: true,
+      nameSnap: true,
+    });
+  }
+
+  function runFlashbankCutscene(rolled, onDone) {
+    if (!elCutsceneFlashbank) {
+      onDone();
+      return;
+    }
+    clearAutoTimer();
+    elCutsceneFlashbank.style.setProperty("--fb-blue", rolled.color);
+    elCutsceneFlashbank.classList.remove("cutscene-flashbank--hidden", "cutscene-flashbank--run", "cutscene-flashbank--fast");
+    void elCutsceneFlashbank.offsetWidth;
+    elCutsceneFlashbank.classList.add("cutscene-flashbank--run");
+    elCutsceneFlashbank.setAttribute("aria-hidden", "false");
+    if (prefersReducedMotion()) elCutsceneFlashbank.classList.add("cutscene-flashbank--fast");
+
+    const ms = prefersReducedMotion() ? 800 : FLASHBANK_CUTSCENE_MS;
+    window.setTimeout(() => {
+      elCutsceneFlashbank.classList.remove("cutscene-flashbank--run", "cutscene-flashbank--fast");
+      elCutsceneFlashbank.classList.add("cutscene-flashbank--hidden");
+      elCutsceneFlashbank.setAttribute("aria-hidden", "true");
+      onDone();
+    }, ms);
+  }
+
+  function runFlatCutscene(rolled, onDone) {
+    if (!elCutsceneFlat) {
+      onDone();
+      return;
+    }
+    clearAutoTimer();
+    elCutsceneFlat.classList.remove("cutscene-flat--hidden", "cutscene-flat--run", "cutscene-flat--fast");
+    void elCutsceneFlat.offsetWidth;
+    elCutsceneFlat.classList.add("cutscene-flat--run");
+    elCutsceneFlat.setAttribute("aria-hidden", "false");
+    if (prefersReducedMotion()) elCutsceneFlat.classList.add("cutscene-flat--fast");
+
+    const ms = prefersReducedMotion() ? 850 : FLAT_CUTSCENE_MS;
+    window.setTimeout(() => {
+      elCutsceneFlat.classList.remove("cutscene-flat--run", "cutscene-flat--fast");
+      elCutsceneFlat.classList.add("cutscene-flat--hidden");
+      elCutsceneFlat.setAttribute("aria-hidden", "true");
+      onDone();
+    }, ms);
   }
 
   function runSaatyonuCutscene(rolled, onDone) {
@@ -1220,6 +1365,20 @@
       setOrbsSolidColor(rolled.color);
       runBilgeCutscene(rolled, () => {
         startBilgeRevealAfterCutscene(rolled);
+      });
+      return;
+    }
+    if (kind === "flashbank") {
+      setOrbsSolidColor(rolled.color);
+      runFlashbankCutscene(rolled, () => {
+        startFlashbankRevealAfterCutscene(rolled);
+      });
+      return;
+    }
+    if (kind === "flat") {
+      setOrbsSolidColor(rolled.color);
+      runFlatCutscene(rolled, () => {
+        startFlatRevealAfterCutscene(rolled);
       });
       return;
     }
@@ -1487,6 +1646,12 @@
         if (aurassLockTarget && auraHasCutscene(aurassLockTarget)) {
           runPreviewCutsceneForAura(aurassLockTarget);
         }
+      });
+    }
+    if (elAurassGlobalToggle) {
+      elAurassGlobalToggle.addEventListener("click", (e) => {
+        e.stopPropagation();
+        toggleAurassGlobalDrawer();
       });
     }
     if (elQuickBackdrop) elQuickBackdrop.addEventListener("click", () => closeQuickModal());
