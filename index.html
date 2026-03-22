@@ -106,6 +106,14 @@
         </section>
 
         <section class="app-panel app-panel--aurass" id="panel-aurass" aria-label="AuraSs koleksiyonu">
+          <button
+            type="button"
+            class="global-open"
+            id="btn-to-global"
+            aria-label="Global auraX ekranına git"
+          >
+            ▶
+          </button>
           <div class="aurass-head">
             <button type="button" class="btn btn--panel-back" id="btn-from-aurass" aria-label="Oyuna dön">
               ← Oyun
@@ -115,6 +123,30 @@
           </div>
           <div class="aurass-scroll">
             <ul class="aurass-list" id="aurass-list"></ul>
+          </div>
+        </section>
+
+        <section class="app-panel app-panel--global" id="panel-global" aria-label="Global auraX">
+          <div class="global-head">
+            <button type="button" class="btn btn--panel-back" id="btn-from-global" aria-label="AuraSs’e dön">
+              ← AuraSs
+            </button>
+            <h2 class="global-title">Global auraX</h2>
+            <p class="global-sub">Sıralı liste — yanındaki alanlar şimdilik boş.</p>
+          </div>
+          <div class="global-scroll">
+            <ol class="global-rows">
+              <li class="global-rows__row global-rows__row--1"><span class="global-rows__num">1</span><span class="global-rows__slot"></span></li>
+              <li class="global-rows__row global-rows__row--2"><span class="global-rows__num">2</span><span class="global-rows__slot"></span></li>
+              <li class="global-rows__row global-rows__row--3"><span class="global-rows__num">3</span><span class="global-rows__slot"></span></li>
+              <li class="global-rows__row"><span class="global-rows__num">4</span><span class="global-rows__slot"></span></li>
+              <li class="global-rows__row"><span class="global-rows__num">5</span><span class="global-rows__slot"></span></li>
+              <li class="global-rows__row"><span class="global-rows__num">6</span><span class="global-rows__slot"></span></li>
+              <li class="global-rows__row"><span class="global-rows__num">7</span><span class="global-rows__slot"></span></li>
+              <li class="global-rows__row"><span class="global-rows__num">8</span><span class="global-rows__slot"></span></li>
+              <li class="global-rows__row"><span class="global-rows__num">9</span><span class="global-rows__slot"></span></li>
+              <li class="global-rows__row"><span class="global-rows__num">10</span><span class="global-rows__slot"></span></li>
+            </ol>
           </div>
         </section>
       </div>
@@ -307,30 +339,65 @@
       style="--fb-blue: #1e88e5"
     >
       <div class="cutscene-flashbank__veil"></div>
-      <div class="cutscene-flashbank__stage">
-        <div class="cutscene-flashbank__hex-wrap" aria-hidden="true">
-          <svg class="cutscene-flashbank__hex" viewBox="-120 -120 240 240" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <filter id="fb-glow" x="-100%" y="-100%" width="300%" height="300%">
-                <feGaussianBlur stdDeviation="8" result="b" />
-                <feMerge>
-                  <feMergeNode in="b" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
-            </defs>
-            <polygon
-              class="cutscene-flashbank__hex-shape"
-              points="-90,-52 -90,52 0,104 90,52 90,-52 0,-104"
-              fill="none"
-              stroke="var(--fb-blue)"
-              stroke-width="10"
-              filter="url(#fb-glow)"
-            />
-          </svg>
+      <div class="cutscene-flashbank__halo" aria-hidden="true"></div>
+      <div class="cutscene-flashbank__star-stage">
+        <div class="cutscene-flashbank__star-spin">
+          <div class="cutscene-flashbank__star-rotate" aria-hidden="true">
+            <svg
+              class="cutscene-flashbank__star-svg"
+              viewBox="-100 -100 200 200"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+            >
+              <defs>
+                <radialGradient id="flashbank-star-grad" cx="32%" cy="30%" r="72%">
+                  <stop offset="0%" stop-color="#ffffff" stop-opacity="1" />
+                  <stop offset="28%" stop-color="#ffffff" stop-opacity="0.95" />
+                  <stop id="flashbank-stop-mid" offset="55%" stop-color="var(--fb-blue)" stop-opacity="1" />
+                  <stop id="flashbank-stop-edge" offset="100%" stop-color="var(--fb-blue)" stop-opacity="0.22" />
+                </radialGradient>
+                <filter id="flashbank-star-soft" x="-80%" y="-80%" width="260%" height="260%">
+                  <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="b" />
+                  <feMerge>
+                    <feMergeNode in="b" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+              <path
+                class="cutscene-flashbank__star-path"
+                fill="url(#flashbank-star-grad)"
+                filter="url(#flashbank-star-soft)"
+                d="M 0,-92 L 26.87,-26.87 L 92,0 L 26.87,26.87 L 0,92 L -26.87,26.87 L -92,0 L -26.87,-26.87 Z"
+              />
+            </svg>
+          </div>
         </div>
       </div>
-      <div class="cutscene-flashbank__flash" aria-hidden="true"></div>
+      <div class="cutscene-flashbank__hex-wrap" aria-hidden="true">
+        <svg class="cutscene-flashbank__hex" viewBox="-120 -120 240 240" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <filter id="fb-hex-glow" x="-100%" y="-100%" width="300%" height="300%">
+              <feGaussianBlur stdDeviation="6" result="b" />
+              <feMerge>
+                <feMergeNode in="b" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+          <polygon
+            class="cutscene-flashbank__hex-shape"
+            points="-90,-52 -90,52 0,104 90,52 90,-52 0,-104"
+            fill="none"
+            stroke="var(--fb-blue)"
+            stroke-width="9"
+            filter="url(#fb-hex-glow)"
+          />
+        </svg>
+      </div>
+      <div class="cutscene-flashbank__burst" aria-hidden="true"></div>
+      <div class="cutscene-flashbank__whitehold" aria-hidden="true"></div>
+      <p class="cutscene-flashbank__title" aria-hidden="true">Flashbank</p>
     </div>
 
     <div
@@ -397,60 +464,29 @@
 
     <div id="aurass-lock-modal" class="modal modal--hidden" aria-hidden="true">
       <div class="modal__backdrop" id="aurass-lock-backdrop" tabindex="-1"></div>
-      <div class="modal__panel-wrap modal__panel-wrap--aurass" role="presentation">
-        <aside id="aurass-global-drawer" class="aurass-global-drawer" aria-hidden="true">
-          <div class="aurass-global-drawer__inner">
-            <h3 class="aurass-global-drawer__title">Global auraX</h3>
-            <ol class="aurass-global-rows">
-              <li class="aurass-global-rows__row aurass-global-rows__row--1"><span class="aurass-global-rows__num">1</span><span class="aurass-global-rows__slot"></span></li>
-              <li class="aurass-global-rows__row aurass-global-rows__row--2"><span class="aurass-global-rows__num">2</span><span class="aurass-global-rows__slot"></span></li>
-              <li class="aurass-global-rows__row aurass-global-rows__row--3"><span class="aurass-global-rows__num">3</span><span class="aurass-global-rows__slot"></span></li>
-              <li class="aurass-global-rows__row"><span class="aurass-global-rows__num">4</span><span class="aurass-global-rows__slot"></span></li>
-              <li class="aurass-global-rows__row"><span class="aurass-global-rows__num">5</span><span class="aurass-global-rows__slot"></span></li>
-              <li class="aurass-global-rows__row"><span class="aurass-global-rows__num">6</span><span class="aurass-global-rows__slot"></span></li>
-              <li class="aurass-global-rows__row"><span class="aurass-global-rows__num">7</span><span class="aurass-global-rows__slot"></span></li>
-              <li class="aurass-global-rows__row"><span class="aurass-global-rows__num">8</span><span class="aurass-global-rows__slot"></span></li>
-              <li class="aurass-global-rows__row"><span class="aurass-global-rows__num">9</span><span class="aurass-global-rows__slot"></span></li>
-              <li class="aurass-global-rows__row"><span class="aurass-global-rows__num">10</span><span class="aurass-global-rows__slot"></span></li>
-            </ol>
+      <div
+        class="modal__panel modal__panel--aurass-lock"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="aurass-lock-title"
+      >
+        <div class="aurass-lock-modal__lock-wrap" id="aurass-lock-lock-wrap" aria-hidden="true">
+          <div class="aurass-lock-modal__lock">
+            <svg viewBox="0 0 24 24" width="96" height="96" xmlns="http://www.w3.org/2000/svg">
+              <path
+                fill="currentColor"
+                d="M12 1a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V11a2 2 0 0 0-2-2h-1V6a5 5 0 0 0-5-5zm-3 8V6a3 3 0 0 1 6 0v3H9z"
+              />
+            </svg>
           </div>
-        </aside>
-        <div
-          class="modal__panel modal__panel--aurass-lock"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="aurass-lock-title"
-        >
-          <button
-            type="button"
-            class="aurass-global-toggle"
-            id="aurass-global-toggle"
-            aria-label="Global aura paneli"
-            aria-expanded="false"
-            aria-controls="aurass-global-drawer"
-          >
-            ◀
+        </div>
+        <h2 class="aurass-lock-modal__title" id="aurass-lock-title">Kilitli</h2>
+        <p class="aurass-lock-modal__name" id="aurass-lock-name"></p>
+        <div class="modal__actions modal__actions--stack">
+          <button type="button" class="btn btn--modal-primary" id="aurass-lock-watch">
+            Cutscene'yi izle
           </button>
-          <div class="aurass-lock-modal__body">
-            <div class="aurass-lock-modal__lock-wrap" id="aurass-lock-lock-wrap" aria-hidden="true">
-              <div class="aurass-lock-modal__lock">
-                <svg viewBox="0 0 24 24" width="96" height="96" xmlns="http://www.w3.org/2000/svg">
-                  <path
-                    fill="currentColor"
-                    d="M12 1a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V11a2 2 0 0 0-2-2h-1V6a5 5 0 0 0-5-5zm-3 8V6a3 3 0 0 1 6 0v3H9z"
-                  />
-                </svg>
-              </div>
-            </div>
-            <h2 class="aurass-lock-modal__title" id="aurass-lock-title">Kilitli</h2>
-            <p class="aurass-lock-modal__name" id="aurass-lock-name"></p>
-            <div class="modal__actions modal__actions--stack">
-              <button type="button" class="btn btn--modal-primary" id="aurass-lock-watch">
-                Cutscene'yi izle
-              </button>
-              <button type="button" class="btn btn--modal-secondary" id="aurass-lock-close">Kapat</button>
-            </div>
-          </div>
+          <button type="button" class="btn btn--modal-secondary" id="aurass-lock-close">Kapat</button>
         </div>
       </div>
     </div>

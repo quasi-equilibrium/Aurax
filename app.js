@@ -201,6 +201,13 @@
   let legendRevealTimer2 = 0;
   /** Galeri cutscene önizlemesi (çevirme değil). */
   let isCutscenePreview = false;
+  /** @type {number[]} */
+  let flashbankSceneTimers = [];
+
+  function clearFlashbankSceneTimers() {
+    for (const t of flashbankSceneTimers) window.clearTimeout(t);
+    flashbankSceneTimers = [];
+  }
 
   const elSplash = document.getElementById("splash");
   const elApp = document.getElementById("app");
@@ -217,8 +224,8 @@
   const elAurassLockClose = document.getElementById("aurass-lock-close");
   const elAurassLockTitle = document.getElementById("aurass-lock-title");
   const elAurassLockLockWrap = document.getElementById("aurass-lock-lock-wrap");
-  const elAurassGlobalDrawer = document.getElementById("aurass-global-drawer");
-  const elAurassGlobalToggle = document.getElementById("aurass-global-toggle");
+  const elBtnToGlobal = document.getElementById("btn-to-global");
+  const elBtnFromGlobal = document.getElementById("btn-from-global");
   const elCraftList = document.getElementById("craft-list");
   const elInventoryList = document.getElementById("inventory-list");
   const elInventoryEmpty = document.getElementById("inventory-empty");
@@ -258,10 +265,12 @@
   const elCutsceneFlashbank = document.getElementById("cutscene-flashbank");
   const elCutsceneFlat = document.getElementById("cutscene-flat");
 
-  /** Altıgen mavi ışık + 0,1 sn beyaz + 3 sn bekleme; Lobster isim. */
-  const FLASHBANK_CUTSCENE_MS = 5850;
-  const FLASHBANK_NAME_HOLD_MS = 2400;
-  const FLASHBANK_NAME_FADE_MS = 900;
+  /** Faz 1: yıldız+altıgen+patlama; faz 2: tam beyaz 3 sn; faz 3: titreyen Lobster yazı. */
+  const FLASHBANK_PHASE1_MS = 2800;
+  const FLASHBANK_WHITE_MS = 3000;
+  const FLASHBANK_TITLE_MS = 2800;
+  const FLASHBANK_NAME_HOLD_MS = 1600;
+  const FLASHBANK_NAME_FADE_MS = 800;
   /** Kalem düşüşü + 2 sn + retro patlama; Gentium Bold Italic “Flat”. */
   const FLAT_CUTSCENE_MS = 6400;
   const FLAT_NAME_HOLD_MS = 2400;
@@ -695,7 +704,7 @@
 
   function openCraftView() {
     if (elAppSlider) {
-      elAppSlider.classList.remove("app-slider--aurass");
+      elAppSlider.classList.remove("app-slider--aurass", "app-slider--global");
       elAppSlider.classList.add("app-slider--craft");
     }
     renderCraftPanel();
@@ -707,14 +716,21 @@
 
   function openAuraSsView() {
     if (elAppSlider) {
-      elAppSlider.classList.remove("app-slider--craft");
+      elAppSlider.classList.remove("app-slider--craft", "app-slider--global");
       elAppSlider.classList.add("app-slider--aurass");
     }
     renderAurassPanel();
   }
 
   function closeAuraSsView() {
-    if (elAppSlider) elAppSlider.classList.remove("app-slider--aurass");
+    if (elAppSlider) elAppSlider.classList.remove("app-slider--aurass", "app-slider--global");
+  }
+
+  function openGlobalAuraView() {
+    if (elAppSlider) {
+      elAppSlider.classList.remove("app-slider--craft", "app-slider--aurass");
+      elAppSlider.classList.add("app-slider--global");
+    }
   }
 
   function listAurasForAurassSorted() {
@@ -778,34 +794,15 @@
     elAurassLockName.textContent = aura.name;
     const has = auraHasCutscene(aura);
     elAurassLockWatch.classList.toggle("btn--aurass-watch--hidden", !has);
-    if (elAurassGlobalDrawer) {
-      elAurassGlobalDrawer.classList.remove("aurass-global-drawer--open");
-      elAurassGlobalDrawer.setAttribute("aria-hidden", "true");
-    }
-    if (elAurassGlobalToggle) elAurassGlobalToggle.setAttribute("aria-expanded", "false");
     elAurassLockModal.classList.remove("modal--hidden");
     elAurassLockModal.setAttribute("aria-hidden", "false");
   }
 
   function closeAurassLockModal() {
     aurassLockTarget = null;
-    if (elAurassGlobalDrawer) {
-      elAurassGlobalDrawer.classList.remove("aurass-global-drawer--open");
-      elAurassGlobalDrawer.setAttribute("aria-hidden", "true");
-    }
-    if (elAurassGlobalToggle) elAurassGlobalToggle.setAttribute("aria-expanded", "false");
     if (!elAurassLockModal) return;
     elAurassLockModal.classList.add("modal--hidden");
     elAurassLockModal.setAttribute("aria-hidden", "true");
-  }
-
-  function toggleAurassGlobalDrawer() {
-    if (!elAurassGlobalDrawer || !elAurassGlobalToggle) return;
-    const open = !elAurassGlobalDrawer.classList.contains("aurass-global-drawer--open");
-    elAurassGlobalDrawer.classList.toggle("aurass-global-drawer--open", open);
-    elAurassGlobalDrawer.setAttribute("aria-hidden", open ? "false" : "true");
-    elAurassGlobalToggle.setAttribute("aria-expanded", open ? "true" : "false");
-    elAurassGlobalToggle.textContent = open ? "▶" : "◀";
   }
 
   /** @returns {boolean} */
@@ -819,6 +816,7 @@
     if (elBtnTest) elBtnTest.disabled = true;
     if (elBtnToCraft) elBtnToCraft.disabled = true;
     if (elBtnToAurass) elBtnToAurass.disabled = true;
+    if (elBtnToGlobal) elBtnToGlobal.disabled = true;
     return true;
   }
 
@@ -832,6 +830,7 @@
     if (elBtnTest) elBtnTest.disabled = false;
     if (elBtnToCraft) elBtnToCraft.disabled = false;
     if (elBtnToAurass) elBtnToAurass.disabled = false;
+    if (elBtnToGlobal) elBtnToGlobal.disabled = false;
     elAuraStage.classList.remove("aura-stage--spinning");
     renderAuraStage();
     renderInventory();
@@ -971,6 +970,7 @@
     if (elBtnTest) elBtnTest.disabled = false;
     if (elBtnToCraft) elBtnToCraft.disabled = false;
     if (elBtnToAurass) elBtnToAurass.disabled = false;
+    if (elBtnToGlobal) elBtnToGlobal.disabled = false;
     elAuraStage.classList.remove("aura-stage--spinning");
     renderAuraStage();
     renderInventory();
@@ -1108,21 +1108,59 @@
       onDone();
       return;
     }
+    clearFlashbankSceneTimers();
     clearAutoTimer();
+    const reduced = prefersReducedMotion();
+    const p1 = reduced ? 550 : FLASHBANK_PHASE1_MS;
+    const whiteMs = reduced ? 400 : FLASHBANK_WHITE_MS;
+    const titleMs = reduced ? 450 : FLASHBANK_TITLE_MS;
+
     elCutsceneFlashbank.style.setProperty("--fb-blue", rolled.color);
-    elCutsceneFlashbank.classList.remove("cutscene-flashbank--hidden", "cutscene-flashbank--run", "cutscene-flashbank--fast");
+    const stopMid = document.getElementById("flashbank-stop-mid");
+    const stopEdge = document.getElementById("flashbank-stop-edge");
+    if (stopMid) stopMid.setAttribute("stop-color", rolled.color);
+    if (stopEdge) {
+      stopEdge.setAttribute("stop-color", rolled.color);
+      stopEdge.setAttribute("stop-opacity", "0.2");
+    }
+
+    elCutsceneFlashbank.classList.remove(
+      "cutscene-flashbank--hidden",
+      "cutscene-flashbank--run",
+      "cutscene-flashbank--fast",
+      "cutscene-flashbank--phase-white",
+      "cutscene-flashbank--phase-title",
+    );
     void elCutsceneFlashbank.offsetWidth;
     elCutsceneFlashbank.classList.add("cutscene-flashbank--run");
     elCutsceneFlashbank.setAttribute("aria-hidden", "false");
-    if (prefersReducedMotion()) elCutsceneFlashbank.classList.add("cutscene-flashbank--fast");
+    if (reduced) elCutsceneFlashbank.classList.add("cutscene-flashbank--fast");
 
-    const ms = prefersReducedMotion() ? 800 : FLASHBANK_CUTSCENE_MS;
-    window.setTimeout(() => {
-      elCutsceneFlashbank.classList.remove("cutscene-flashbank--run", "cutscene-flashbank--fast");
+    const finish = () => {
+      clearFlashbankSceneTimers();
+      elCutsceneFlashbank.classList.remove(
+        "cutscene-flashbank--run",
+        "cutscene-flashbank--fast",
+        "cutscene-flashbank--phase-white",
+        "cutscene-flashbank--phase-title",
+      );
       elCutsceneFlashbank.classList.add("cutscene-flashbank--hidden");
       elCutsceneFlashbank.setAttribute("aria-hidden", "true");
       onDone();
-    }, ms);
+    };
+
+    flashbankSceneTimers.push(
+      window.setTimeout(() => {
+        elCutsceneFlashbank.classList.add("cutscene-flashbank--phase-white");
+      }, p1),
+    );
+    flashbankSceneTimers.push(
+      window.setTimeout(() => {
+        elCutsceneFlashbank.classList.remove("cutscene-flashbank--phase-white");
+        elCutsceneFlashbank.classList.add("cutscene-flashbank--phase-title");
+      }, p1 + whiteMs),
+    );
+    flashbankSceneTimers.push(window.setTimeout(finish, p1 + whiteMs + titleMs));
   }
 
   function runFlatCutscene(rolled, onDone) {
@@ -1299,6 +1337,7 @@
     if (elBtnTest) elBtnTest.disabled = true;
     if (elBtnToCraft) elBtnToCraft.disabled = true;
     if (elBtnToAurass) elBtnToAurass.disabled = true;
+    if (elBtnToGlobal) elBtnToGlobal.disabled = true;
     elAuraStage.classList.add("aura-stage--spinning");
     elAuraEyebrow.textContent = "Çevriliyor";
     elAuraName.textContent = "…";
@@ -1403,6 +1442,7 @@
     if (elBtnTest) elBtnTest.disabled = false;
     if (elBtnToCraft) elBtnToCraft.disabled = false;
     if (elBtnToAurass) elBtnToAurass.disabled = false;
+    if (elBtnToGlobal) elBtnToGlobal.disabled = false;
     elAuraStage.classList.remove("aura-stage--spinning");
     renderAuraStage();
     renderInventory();
@@ -1648,12 +1688,8 @@
         }
       });
     }
-    if (elAurassGlobalToggle) {
-      elAurassGlobalToggle.addEventListener("click", (e) => {
-        e.stopPropagation();
-        toggleAurassGlobalDrawer();
-      });
-    }
+    if (elBtnToGlobal) elBtnToGlobal.addEventListener("click", () => !isSpinning && openGlobalAuraView());
+    if (elBtnFromGlobal) elBtnFromGlobal.addEventListener("click", () => openAuraSsView());
     if (elQuickBackdrop) elQuickBackdrop.addEventListener("click", () => closeQuickModal());
     if (elQuickCancel) elQuickCancel.addEventListener("click", () => closeQuickModal());
     if (elQuickSubmit) elQuickSubmit.addEventListener("click", () => submitQuickCode());
