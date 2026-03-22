@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Lobster&family=Gentium+Plus:ital,wght@1,700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Bungee&family=Fjalla+One&family=Gentium+Plus:ital,wght@1,700&family=Lobster&display=swap"
       rel="stylesheet"
     />
     <link rel="preconnect" href="https://fonts.cdnfonts.com" />
@@ -442,6 +442,82 @@
         </div>
       </div>
       <div class="cutscene-flat__burst" aria-hidden="true"></div>
+    </div>
+
+    <div
+      id="cutscene-derindeniz"
+      class="cutscene-dd cutscene-dd--hidden"
+      aria-hidden="true"
+      role="presentation"
+      style="--dd-blue: #006064"
+    >
+      <div class="cutscene-dd__viewport">
+        <div class="cutscene-dd__world">
+          <div class="cutscene-dd__sky" aria-hidden="true"></div>
+          <div class="cutscene-dd__sea" aria-hidden="true">
+            <div class="cutscene-dd__bubbles">
+              <span></span><span></span><span></span><span></span><span></span><span></span>
+              <span></span><span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <div class="cutscene-dd__tags">
+              <span class="cutscene-dd__tag cutscene-dd__tag--d1">Dip</span>
+              <span class="cutscene-dd__tag cutscene-dd__tag--d2">Mavi</span>
+              <span class="cutscene-dd__tag cutscene-dd__tag--d3">Dalga</span>
+              <span class="cutscene-dd__tag cutscene-dd__tag--d4">Derin</span>
+              <span class="cutscene-dd__tag cutscene-dd__tag--d5">Köpük</span>
+              <span class="cutscene-dd__tag cutscene-dd__tag--d6">Tuzlu</span>
+              <span class="cutscene-dd__tag cutscene-dd__tag--d7">Akıntı</span>
+              <span class="cutscene-dd__tag cutscene-dd__tag--d8">Mercan</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="cutscene-dd__anchor-layer" aria-hidden="true">
+        <svg
+          class="cutscene-dd__anchor"
+          viewBox="0 0 120 160"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
+        >
+          <path
+            fill="#5d4037"
+            stroke="#3e2723"
+            stroke-width="2"
+            d="M60 8 L68 52 L88 58 L68 64 L60 108 L52 64 L32 58 L52 52 Z"
+          />
+          <circle cx="60" cy="58" r="10" fill="#4e342e" />
+          <path d="M60 108 L60 148 M45 130 L75 130" stroke="#3e2723" stroke-width="6" stroke-linecap="round" />
+        </svg>
+      </div>
+      <p class="cutscene-dd__cut-title" aria-hidden="true">DerinDEniz</p>
+    </div>
+
+    <div
+      id="cutscene-yildirim"
+      class="cutscene-yil cutscene-yil--hidden"
+      aria-hidden="true"
+      role="presentation"
+    >
+      <div class="cutscene-yil__veil"></div>
+      <div class="cutscene-yil__cloud" aria-hidden="true"></div>
+      <svg class="cutscene-yil__bolt" viewBox="0 0 100 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path
+          fill="#fffde7"
+          filter="url(#yl-glow)"
+          d="M 52 4 L 38 78 L 58 78 L 42 198 L 72 68 L 48 68 L 62 4 Z"
+        />
+        <defs>
+          <filter id="yl-glow" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="3" result="b" />
+            <feMerge>
+              <feMergeNode in="b" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+      </svg>
+      <div class="cutscene-yil__yellow" aria-hidden="true"></div>
+      <p class="cutscene-yil__title" aria-hidden="true">Yıldırım</p>
     </div>
 
     <div

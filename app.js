@@ -78,7 +78,7 @@
   /**
    * cutsceneTier: 1 = nova, 2 = yıldız (veya oneIn ≥ 5000).
    * cutsceneKind: özel sahneler (Steamer / saat / bilge yazı).
-   * @typedef {{ id: string; name: string; color: string; oneIn: number; oneInLabel: string; weightDenom?: number; cutsceneTier?: 1 | 2; cutsceneKind?: 'sseri' | 'ufo' | 'saatyonu' | 'bilge' | 'flashbank' | 'flat' }} AuraDef
+   * @typedef {{ id: string; name: string; color: string; oneIn: number; oneInLabel: string; weightDenom?: number; cutsceneTier?: 1 | 2; cutsceneKind?: 'sseri' | 'ufo' | 'saatyonu' | 'bilge' | 'flashbank' | 'flat' | 'derindeniz' | 'yildirim' }} AuraDef
    */
 
   const AURAS_1_IN_100 = /** @type {const} */ ([
@@ -158,6 +158,22 @@
       oneInLabel: "1 / 23.767",
       cutsceneKind: "flat",
     },
+    {
+      id: "derin_deniz",
+      name: "DerinDEniz",
+      color: "#00838f",
+      oneIn: 59098,
+      oneInLabel: "1 / 59.098",
+      cutsceneKind: "derindeniz",
+    },
+    {
+      id: "yildirim",
+      name: "Yıldırım",
+      color: "#fdd835",
+      oneIn: 78543,
+      oneInLabel: "1 / 78.543",
+      cutsceneKind: "yildirim",
+    },
   ]);
 
   const AURAS_100_FULL = AURAS_1_IN_100.map((a) => ({
@@ -203,10 +219,24 @@
   let isCutscenePreview = false;
   /** @type {number[]} */
   let flashbankSceneTimers = [];
+  /** @type {number[]} */
+  let derinSceneTimers = [];
+  /** @type {number[]} */
+  let yildirimSceneTimers = [];
 
   function clearFlashbankSceneTimers() {
     for (const t of flashbankSceneTimers) window.clearTimeout(t);
     flashbankSceneTimers = [];
+  }
+
+  function clearDerinSceneTimers() {
+    for (const t of derinSceneTimers) window.clearTimeout(t);
+    derinSceneTimers = [];
+  }
+
+  function clearYildirimSceneTimers() {
+    for (const t of yildirimSceneTimers) window.clearTimeout(t);
+    yildirimSceneTimers = [];
   }
 
   const elSplash = document.getElementById("splash");
@@ -264,6 +294,8 @@
   const elCutsceneBilge = document.getElementById("cutscene-bilge");
   const elCutsceneFlashbank = document.getElementById("cutscene-flashbank");
   const elCutsceneFlat = document.getElementById("cutscene-flat");
+  const elCutsceneDerindeniz = document.getElementById("cutscene-derindeniz");
+  const elCutsceneYildirim = document.getElementById("cutscene-yildirim");
 
   /** Faz 1: yıldız+altıgen+patlama; faz 2: tam beyaz 3 sn; faz 3: titreyen Lobster yazı. */
   const FLASHBANK_PHASE1_MS = 2800;
@@ -275,6 +307,10 @@
   const FLAT_CUTSCENE_MS = 6400;
   const FLAT_NAME_HOLD_MS = 2400;
   const FLAT_NAME_FADE_MS = 900;
+  const DERIN_DENIZ_NAME_HOLD_MS = 2200;
+  const DERIN_DENIZ_NAME_FADE_MS = 850;
+  const YILDIRIM_NAME_HOLD_MS = 2200;
+  const YILDIRIM_NAME_FADE_MS = 850;
 
   /** Sol yelkovan + gri donma (~4,5 sn), ardından JI Fajita isim kartı. */
   const SAATYONU_CUTSCENE_MS = 4500;
@@ -313,6 +349,8 @@
     if (aura.cutsceneKind === "bilge") return "bilge";
     if (aura.cutsceneKind === "flashbank") return "flashbank";
     if (aura.cutsceneKind === "flat") return "flat";
+    if (aura.cutsceneKind === "derindeniz") return "derindeniz";
+    if (aura.cutsceneKind === "yildirim") return "yildirim";
     if (aura.cutsceneTier === 2) return "star";
     if (aura.cutsceneTier === 1) return "nova";
     if (aura.oneIn >= LEGENDARY_MIN_ONE_IN) return "star";
@@ -903,6 +941,26 @@
       });
       return;
     }
+    if (kind === "derindeniz") {
+      runDerindenizCutscene(aura, () => {
+        startRevealOverlay(aura, "Özel aura", DERIN_DENIZ_NAME_HOLD_MS, DERIN_DENIZ_NAME_FADE_MS, {
+          fontFjalla: true,
+          shakeGentle: true,
+          ...pm,
+        });
+      });
+      return;
+    }
+    if (kind === "yildirim") {
+      runYildirimCutscene(aura, () => {
+        startRevealOverlay(aura, "Özel aura", YILDIRIM_NAME_HOLD_MS, YILDIRIM_NAME_FADE_MS, {
+          fontBungee: true,
+          shakeGentle: true,
+          ...pm,
+        });
+      });
+      return;
+    }
     if (kind === "star") {
       runLegendaryCutscene(aura, () => {
         startRevealOverlay(aura, "Efsanevi aura", LEGEND_REVEAL_HOLD_MS, LEGEND_REVEAL_FADE_MS, pm);
@@ -998,6 +1056,9 @@
     const previewMode = Boolean(opts && opts.previewMode);
     const fontLobster = Boolean(opts && opts.fontLobster);
     const fontGentium = Boolean(opts && opts.fontGentium);
+    const fontFjalla = Boolean(opts && opts.fontFjalla);
+    const fontBungee = Boolean(opts && opts.fontBungee);
+    const shakeGentle = Boolean(opts && opts.shakeGentle);
     const nameSnap = Boolean(opts && opts.nameSnap);
     elLegendReveal.classList.remove("legend-reveal--gray");
     elLegendRevealEyebrow.classList.remove("font-anna");
@@ -1009,7 +1070,10 @@
       "font-anna",
       "font-lobster",
       "font-gentium-bi",
+      "font-fjalla",
+      "font-bungee",
       "legend-reveal__name--snap-in",
+      "legend-reveal__name--shake-gentle",
     );
 
     elLegendRevealEyebrow.textContent = eyebrow;
@@ -1019,14 +1083,20 @@
     elLegendReveal.style.transitionDuration = reduced ? "0.38s" : "";
     elLegendReveal.classList.toggle("legend-reveal--gray", grayReveal);
     elLegendRevealEyebrow.classList.toggle("font-anna", fontAnnaEyebrow);
-    elLegendRevealName.classList.toggle("font-steamer", steamer);
+    elLegendRevealName.classList.toggle("font-steamer", steamer && !fontFjalla && !fontBungee);
     elLegendRevealName.classList.toggle("font-fajita", fontFajita);
-    elLegendRevealName.classList.toggle("font-anna", fontAnna && !fontFajita);
-    elLegendRevealName.classList.toggle("legend-reveal__name--shake", shake && !shakeHard);
-    elLegendRevealName.classList.toggle("legend-reveal__name--shake-hard", shakeHard);
-    elLegendRevealName.classList.toggle("font-lobster", fontLobster);
-    elLegendRevealName.classList.toggle("font-gentium-bi", fontGentium);
-    elLegendRevealName.classList.toggle("legend-reveal__name--snap-in", nameSnap);
+    elLegendRevealName.classList.toggle(
+      "font-anna",
+      fontAnna && !fontFajita && !fontFjalla && !fontBungee,
+    );
+    elLegendRevealName.classList.toggle("legend-reveal__name--shake", shake && !shakeHard && !shakeGentle);
+    elLegendRevealName.classList.toggle("legend-reveal__name--shake-hard", shakeHard && !shakeGentle);
+    elLegendRevealName.classList.toggle("font-lobster", fontLobster && !fontFjalla && !fontBungee);
+    elLegendRevealName.classList.toggle("font-gentium-bi", fontGentium && !fontFjalla && !fontBungee);
+    elLegendRevealName.classList.toggle("font-fjalla", fontFjalla);
+    elLegendRevealName.classList.toggle("font-bungee", fontBungee);
+    elLegendRevealName.classList.toggle("legend-reveal__name--shake-gentle", shakeGentle);
+    elLegendRevealName.classList.toggle("legend-reveal__name--snap-in", nameSnap && !shakeGentle);
     elLegendReveal.classList.remove("legend-reveal--hidden", "legend-reveal--fade");
     elLegendReveal.setAttribute("aria-hidden", "false");
     void elLegendReveal.offsetWidth;
@@ -1046,7 +1116,10 @@
           "font-anna",
           "font-lobster",
           "font-gentium-bi",
+          "font-fjalla",
+          "font-bungee",
           "legend-reveal__name--snap-in",
+          "legend-reveal__name--shake-gentle",
         );
         if (previewMode) endCutscenePreview();
         else finishLegendarySequence();
@@ -1182,6 +1255,135 @@
       elCutsceneFlat.setAttribute("aria-hidden", "true");
       onDone();
     }, ms);
+  }
+
+  function startDerinDenizRevealAfterCutscene(rolled) {
+    startRevealOverlay(rolled, "Özel aura", DERIN_DENIZ_NAME_HOLD_MS, DERIN_DENIZ_NAME_FADE_MS, {
+      fontFjalla: true,
+      shakeGentle: true,
+    });
+  }
+
+  function startYildirimRevealAfterCutscene(rolled) {
+    startRevealOverlay(rolled, "Özel aura", YILDIRIM_NAME_HOLD_MS, YILDIRIM_NAME_FADE_MS, {
+      fontBungee: true,
+      shakeGentle: true,
+    });
+  }
+
+  function runDerindenizCutscene(rolled, onDone) {
+    if (!elCutsceneDerindeniz) {
+      onDone();
+      return;
+    }
+    clearDerinSceneTimers();
+    clearAutoTimer();
+    const reduced = prefersReducedMotion();
+    const p1 = reduced ? 550 : 3000;
+    const riseMs = reduced ? 250 : 1100;
+    const anchorMs = reduced ? 320 : 1750;
+    const titleMs = reduced ? 500 : 2400;
+
+    elCutsceneDerindeniz.style.setProperty("--dd-blue", rolled.color);
+
+    elCutsceneDerindeniz.classList.remove(
+      "cutscene-dd--hidden",
+      "cutscene-dd--run",
+      "cutscene-dd--fast",
+      "cutscene-dd--phase-rise",
+      "cutscene-dd--phase-anchor",
+      "cutscene-dd--phase-title",
+      "cutscene-dd--phase-shake",
+    );
+    void elCutsceneDerindeniz.offsetWidth;
+    elCutsceneDerindeniz.classList.add("cutscene-dd--run");
+    elCutsceneDerindeniz.setAttribute("aria-hidden", "false");
+    if (reduced) elCutsceneDerindeniz.classList.add("cutscene-dd--fast");
+
+    const finish = () => {
+      clearDerinSceneTimers();
+      elCutsceneDerindeniz.classList.remove(
+        "cutscene-dd--run",
+        "cutscene-dd--fast",
+        "cutscene-dd--phase-rise",
+        "cutscene-dd--phase-anchor",
+        "cutscene-dd--phase-title",
+        "cutscene-dd--phase-shake",
+      );
+      elCutsceneDerindeniz.classList.add("cutscene-dd--hidden");
+      elCutsceneDerindeniz.setAttribute("aria-hidden", "true");
+      onDone();
+    };
+
+    derinSceneTimers.push(
+      window.setTimeout(() => {
+        elCutsceneDerindeniz.classList.add("cutscene-dd--phase-rise");
+      }, p1),
+    );
+    derinSceneTimers.push(
+      window.setTimeout(() => {
+        elCutsceneDerindeniz.classList.add("cutscene-dd--phase-anchor");
+      }, p1 + riseMs),
+    );
+    derinSceneTimers.push(
+      window.setTimeout(() => {
+        elCutsceneDerindeniz.classList.add("cutscene-dd--phase-title", "cutscene-dd--phase-shake");
+      }, p1 + riseMs + anchorMs),
+    );
+    derinSceneTimers.push(window.setTimeout(finish, p1 + riseMs + anchorMs + titleMs));
+  }
+
+  function runYildirimCutscene(rolled, onDone) {
+    if (!elCutsceneYildirim) {
+      onDone();
+      return;
+    }
+    clearYildirimSceneTimers();
+    clearAutoTimer();
+    const reduced = prefersReducedMotion();
+    const boltEnd = reduced ? 500 : 1450;
+    const waitAfter = reduced ? 350 : 2000;
+    const yellowHold = reduced ? 280 : 1000;
+    const titleMs = reduced ? 500 : 2400;
+
+    elCutsceneYildirim.classList.remove(
+      "cutscene-yil--hidden",
+      "cutscene-yil--run",
+      "cutscene-yil--fast",
+      "cutscene-yil--phase-yellow",
+      "cutscene-yil--phase-title",
+    );
+    void elCutsceneYildirim.offsetWidth;
+    elCutsceneYildirim.classList.add("cutscene-yil--run");
+    elCutsceneYildirim.setAttribute("aria-hidden", "false");
+    if (reduced) elCutsceneYildirim.classList.add("cutscene-yil--fast");
+
+    const finish = () => {
+      clearYildirimSceneTimers();
+      elCutsceneYildirim.classList.remove(
+        "cutscene-yil--run",
+        "cutscene-yil--fast",
+        "cutscene-yil--phase-yellow",
+        "cutscene-yil--phase-title",
+      );
+      elCutsceneYildirim.classList.add("cutscene-yil--hidden");
+      elCutsceneYildirim.setAttribute("aria-hidden", "true");
+      onDone();
+    };
+
+    yildirimSceneTimers.push(
+      window.setTimeout(() => {
+        elCutsceneYildirim.classList.add("cutscene-yil--phase-yellow");
+      }, boltEnd + waitAfter),
+    );
+    yildirimSceneTimers.push(
+      window.setTimeout(() => {
+        elCutsceneYildirim.classList.add("cutscene-yil--phase-title");
+      }, boltEnd + waitAfter + yellowHold),
+    );
+    yildirimSceneTimers.push(
+      window.setTimeout(finish, boltEnd + waitAfter + yellowHold + titleMs),
+    );
   }
 
   function runSaatyonuCutscene(rolled, onDone) {
@@ -1418,6 +1620,20 @@
       setOrbsSolidColor(rolled.color);
       runFlatCutscene(rolled, () => {
         startFlatRevealAfterCutscene(rolled);
+      });
+      return;
+    }
+    if (kind === "derindeniz") {
+      setOrbsSolidColor(rolled.color);
+      runDerindenizCutscene(rolled, () => {
+        startDerinDenizRevealAfterCutscene(rolled);
+      });
+      return;
+    }
+    if (kind === "yildirim") {
+      setOrbsSolidColor(rolled.color);
+      runYildirimCutscene(rolled, () => {
+        startYildirimRevealAfterCutscene(rolled);
       });
       return;
     }
